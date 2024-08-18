@@ -202,8 +202,24 @@ def grad_g_fast(X, W, XXT, n1):
     E1 = np.dot(Aplus,XXT)
     return - 2*np.dot(np.dot(X.T,XXT),Aplus.T) + 2*np.dot(np.dot(np.dot(X.T, AAplus),XXT), Aplus.T)
 
-def L_1O( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8, stupid_method = False, save = False, sign_tol = False, tolg = 1e-5,
-            filename =''):
+def L_1O( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8, save = False, sign_tol = False, tolg = 1e-5,
+            filename ='', info = False):
+    """
+    Parameters:
+        X (numpy.ndarray): The matrix to approximate.
+        n1 (int): The number of rows of the matrix.
+        n2 (int): The number of columns of the matrix.
+        s (int): The number of columns to select.
+        ld (float): The regularization parameter.
+        step (float): The step size for the gradient descent.
+        maxiter (int): The maximum number of iterations.
+        display (bool): Whether to display the plots.
+        tol (float): The tolerance for the stopping criterion.
+        sign_tol (bool): Whether to use the sign tolerance.
+    
+    Returns:
+        numpy.ndarray: The selected columns.
+    """
     error = CSSP_approximation_svd(X, n1, n2, s)[1]
     n = 0
     W_i = np.random.rand(n2,s)
@@ -294,7 +310,10 @@ def L_1O( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8, stupid_m
     PsIs = Pp@np.eye(n2,s)
     non_null_columns = np.argsort(np.sum(np.abs(PsIs)**2,axis=-1)**(1./2))[-s:] #find_lines_with_largest_abs(PsIs, s)
     C_emp = X[:,non_null_columns]
-    return (non_null_columns, function_objectif_C( X, C_emp), n)
+    if info:
+        return (non_null_columns, function_objectif_C( X, C_emp), n)
+    else:
+        return non_null_columns
 
 
 def L_1O_part1_speed( X, n1, n2, s, ld, step, maxiter, mod, display = False, tol = 1e-5, smart_start = False, stupid_method = False, save = False):
@@ -387,6 +406,9 @@ def SLS(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, tol
         display (bool): Whether to display the plots.
         tol (float): The tolerance for the stopping criterion.
         stochastic (bool): Whether to use stochastic gradient descent.
+    
+    Returns:
+        numpy.ndarray: The selected columns.
     """
     tw = lambda w : np.ones(n2)  - np.exp(-w*w) 
     K = np.dot(X.T,X)
@@ -600,166 +622,103 @@ def SLS_speed(X, n1, n2, s, ld, step, maxiter, mod, delta = 10, M = 5, display =
 
 
 def local_mu_maximum_volume(A):  #ALGO 1 PAN 2000
+    """
+    Find the subsquare matrix of A that maximise the volume.
+    """
     m, n = A.shape
     assert m < n and np.linalg.matrix_rank(A) == m, "Matrix A must have full row rank with m < n"
     
     # Initialization
     P, L, U = lu(A)  # LU factorization with partial pivoting
-    # print(np.shape(U))
-    # print(np.shape(L))
-    # print(np.shape(P))
-    # print(A)
     Gamma = P.T
     PI = np.identity(n)
     U1 = U[:, :m]
     U2 = U[:, m:]
-    # print(Gamma@A@PI)
-    # print(L@U)
-    
     j = m-1# correct 
     iter = 0
-    # print('new U \n ', U)
-    # print('new L \n ', L)
-    # print('new LU \n ', L@U)
     c = 0
-    while j > 0:#and c<10:
+    while j > 0 and c<1000:
         c+=1
-        # print('\niteration : ', iter)
-        # print('j : ', j)
         iter+=1
         if j < m:
             U1 = U[:, :m]
             U2 = U[:, m:]
             PI1 = PI[:, :m]
             PI2 = PI[:, m:]
-
-            # print('this is U1 0\n', U1)
             # Step 2: Permute the jth and mth columns of U1 
-            
             # Get the number of rows and columns
-            
             # Permute the second column to the last position #OK
-            # print('this is U \n', U)
             Pii = np.identity(m)
             I = np.identity(m)
             In = np.identity(n)
             P = np.roll(Pii, -1, axis=1)
             Pii1 = np.concatenate((I[:, :j-1], P[:,j-1:-1], I[:, j-1:j]) , axis=1)
             # print('this is Pii1 \n', Pii1)
-
             U1 =  np.dot(U1, Pii1)
             PI1 = np.dot(PI1, Pii1) #here
-
             U = np.concatenate((U1,U2),axis=1)
-
             PI = np.concatenate((PI1,PI2),axis=1)
-
-
-            # print('P@Gamma@A@PI \n', Gamma@A@PI)
-            # print('PLP@PU \n', L@U)
-
             PLP = L
             PU = U
             P1_Tr = np.identity(m)
             P2_Tr = np.identity(m)
-
-            # print('this is U permuted \n', PU)
             for i in range(j-1, m-1):
                 # print(i)
                 if (np.abs(PU[i,i]) < np.abs(PU[i+1,i]) * 0.01): 
-                    # permute the row i,i+1 of PU 
                     # print('row permutation')
-                    # print('this is PU \n', PU)
                     P = np.identity(m)
                     P[i,:] = np.identity(m)[i+1,:]
                     P[i+1,:] = np.identity(m)[i,:]
                     PU = P@PU
                     PLP = P@PLP@P
-                    # Gamma = P.T@Gamma
                     Gamma = P@Gamma
 
                 f = PLP[i,i+1]
                 a = PU[i+1,i]
                 b = PU[i,i]
                 P = np.identity(m)
-                # print('a \n', a)    
-                # print('b \n', b)
                 t = a/b
                 P_tr1 = np.identity(m)
                 P_tr1[i,i] = 1/(1+f*t)
                 P_tr1[i,i+1] = -f
                 P_tr1[i+1,i] = t/(1+f*t)
                 P_tr1[i+1,i+1] = 1
+
                 P_tr2 = np.identity(m)
                 P_tr2[i,i] = 1
                 P_tr2[i+1,i+1] = 1/(1+f*t)
                 P_tr2[i+1,i] = -t/(1+f*t)
                 P_tr2[i,i+1] = f
-                # print('this is P_tr1 \n', P_tr1)
-                # print('this is P_tr2 \n', P_tr2)
-                # print('P_tr2@U \n', P_tr2@PU)
+
                 PU = P_tr2@PU
                 P1_Tr = P1_Tr@P_tr1
                 P2_Tr = P_tr2@P2_Tr
             L = PLP@P1_Tr
-            # U = P2_Tr@PU
             U = PU
-
-            # print('this is U triangular \n', U)
-            # print('this is L \n', L)
-
-            # print('P1@P2 \n', P1@P2)
-
-
-        ####### UNTIL HERE IT IS CORRECT !!!
         #PIVOTING DONE
         # Step 3: Check the condition
-        # print('this is U \n', U)
         u_mm = U[m-1, m-1] # correct 
         u_m_row = U[m-1, m-1:] # correct 
-        # print('this is u_m row \n', u_m_row)
         l = np.argmax(np.abs(u_m_row)) + m # correct 
-        # print(l)
-        # l = 5 # to delete 
-
         u_ml = U[m-1, l-1]  # correct 
         mu = 1.1 # sur above 1 but how much ??
-        if mu*np.abs(u_mm) >= np.abs(u_ml): # correct 
-            j = j-1 # correct 
+        if mu*np.abs(u_mm) >= np.abs(u_ml):  
+            j = j-1 
         else : 
-            # print("else")
             # Interchange mth and lth columns 
-            # print('Interchange ', m,' and ',l,' columns ')
-            # print('U \n', U)
-            # print('PI \n', PI)
             Pml = np.identity(n)
             # l+=1
             Pml[:,m-1] = np.identity(n)[:,l-1]
             Pml[:,l-1] = np.identity(n)[:,m-1]
             U = np.dot(U, Pml)
             PI = np.dot(PI, Pml)
-            # print('U \n', U)
-            # print('PI \n', PI)
             j = m - 1 # j = m-1
         # break
     U1 = U[:, :m]
     U2 = U[:, m:]
-    # print('PI \n', PI)
-    # print('GAPI \n', Gamma@A@PI)
-    # print('LU \n', L@U)
-    # print('U \n', U)
-    # print('L \n', L)    
-    # print('Gamma \n', Gamma)
-    # print('PI \n', PI)
-    # print('API \n', A@PI)
-    # print('GTLU \n', Gamma.T@L@U)
-    # print('A \n', A)
-    # print('GTLUPIT \n', Gamma.T@L@U@PI.T)
-    # print('API \n', A@PI)
-    # print('GTLU1 \n', Gamma.T@L@U1)#@PI.T)
     return Gamma, L, U1, U2, PI
 
-def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # en pause pour l'instant
+def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True, info = False): # en pause pour l'instant
     """
     Function to select columns based on leverage scores. Then Apply the local mu maximum volume algorithm (from PAN)
     
@@ -818,7 +777,6 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
     # print('indices \n', ind)
     current_column = 0
     c_tilde = len(selected_indices)
-    print('c_tilde \n', c_tilde)
     S1 = np.zeros((n2, c_tilde))
     for (i, scaling) in selected_indices:
         S1[i, current_column] = 1
@@ -831,7 +789,7 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
     # print('Vs.T@S1@D1 \n', Vs.T@S1@D1)
     # c = s*np.log(s)
     # c = 10*s
-    print(np.shape(Vs.T@S1@D1))
+    # print(np.shape(Vs.T@S1@D1))
     (m, n) = np.shape(Vs.T@S1@D1)
     if ((m >= n) or (np.linalg.matrix_rank(Vs.T@S1@D1) != m)):
         print(m, n)
@@ -857,9 +815,12 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
     # print('S2 \n', S2)
     C = X@S1@S2
     s = np.where(S1@S2 == 1)[0]
-    return (C, function_objectif_C(X, C))
+    if info:
+        return (C, function_objectif_C(X, C))
+    else:
+        return s
 
-def Uniform_sampling(A, s):
+def Uniform_sampling(A, s, info = False):
     """
     Function to select columns based on uniform sampling.
     
@@ -872,5 +833,7 @@ def Uniform_sampling(A, s):
     """
     m, n = A.shape
     indexA = np.random.choice(n, s, replace=False)
-    # print('indexA \n', indexA)
-    return (A[:, indexA], function_objectif_C(A, A[:, indexA]))
+    if info:
+        return (A[:, indexA], function_objectif_C(A, A[:, indexA]))
+    else:
+        return indexA

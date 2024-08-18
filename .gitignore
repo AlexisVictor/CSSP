@@ -1,2 +1,4 @@
-results/
-data/
+results/*.txt
+results/*.eps
+results/*.svg
+data/*.txt

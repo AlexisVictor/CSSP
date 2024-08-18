@@ -140,19 +140,6 @@ def plot_dict(results_dict_L_1O, n1, n2, method = '', save=False, filename='resu
         plt.show()
     return True 
 
-# def save_dict(results_dict : dict, depth : int, filename : str):
-#     """ 
-#     Store a dict in a text file, the dict contains depth sub dict. 
-#     """
-#     with open(filename, 'w') as f:
-#         f.write('filename:\n')
-#         for key, value in results_dict.items():
-#             f.write(f'{key}: {value}\n')
-#     return None
-
-
-# print(dict_fac['prof']['SLS'])
-# save_dict(dict_fac, 3, 'test.txt')
 
 def store_dict_in_file(dict_, depth, filename):
     """ 

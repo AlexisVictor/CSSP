@@ -68,13 +68,13 @@ data_arrithmia = data[:100]
 print('shuffle done')
 
 ######-------------MASSART optimal parameters----------------######## 
-#Random matrix
+##Random matrix
 # t.test_find_optimal_params_L_1O(Lambdas= np.geomspace(1e-9, 1e-5, 5), steps = np.geomspace(1e2, 1e6, 5),
 #                                     save = True, n_test=100, tol = 1e-3, itermax=2000) #done
-# Arrithmia
+## Arrithmia
 # t.test_find_optimal_params_L_1O_real_matrix(data_arrithmia, Lambdas= np.geomspace(1e-3, 1e2, 6)  , steps = np.geomspace(1e-5, 1e0, 6), s=30, save = True,
 #                                                 tol = 1e-3, filename='Arrithmia1', display = False, itermax= 400, n_trials = 50) #done
-# MNIST
+## MNIST
 # t.test_find_optimal_params_L_1O_real_matrix(images_std, Lambdas= np.geomspace(1e-5, 1e0, 6)  , steps = np.geomspace(1e-4, 1e1, 6)
 #                                                 ,s=30, save = True, tol = 1e-3, filename='MNIST1', display = False, itermax= 400, n_trials = 50) #done
 # 
@@ -104,25 +104,9 @@ step = np.geomspace(1e-4, 1e-1, 4)
 #                                               stochastic = True, tol = 1e-3, filename='MNIST_stoch', itermax= 400, 
 #                                               X_list = False, n_test = 4) #ok
 
-######-------------MATHUR not stochatic optimal parameters----------------########  
-
-# t.test_find_optimal_params_SLS(Lambdas= np.geomspace(1.0, 1000, 4), steps = np.geomspace(1e-5, 1e-1, 5),
-#                                   stochastic=False, n_test=100, itermax=2000, save = True, tol = 1e-3, delta = 75) # OK done 
-
-
-# ld = np.geomspace(1e-5, 1e0, 6)
-# step = np.geomspace(1e-3, 1e1, 5)
-# t.test_find_optimal_params_SLS_real_matrix(data_arrithmia_list, Lambdas= ld , steps = step, s=30, save = True, 
-#                                               stochastic = False, tol = 1e-3, filename='Arrithmia_not_stoch', itermax= 400, 
-#                                               X_list = True, n_test = 10) #to run 
-ld = np.geomspace(0.01, 10, 4)
-step = np.geomspace(1e-3, 1.0, 4)
-# t.test_find_optimal_params_SLS_real_matrix(images_std, Lambdas= ld , steps = step, s=30, save = True, 
-#                                               stochastic = False, tol = 1e-3, filename='MNIST___not_stoch', itermax= 400, 
-#                                               X_list = False, n_test = 5) #to run 
 
 #############------------------INfluence of M -----------------############## #done 
-# t.influence_of_M_SLS([[1]], 20, 50, 10,ld = 1, step = 1e-2,n_test = 30, filename = 'random', itermax=2000)
+# t.influence_of_M_SLS([[1]], 20, 50, 10,ld = 1, step = 1e-2,n_test = 30, filename = 'random', itermax=20)
 # t.influence_of_M_SLS(data_arrithmia, 20, 50, 30,ld = 1e-5, step = 1e-1,n_test = 30, filename = 'Arrithmia', itermax=400, real_matrix=True)
 # t.influence_of_M_SLS(images_std, 20, 50, 30, ld = 1e0, step = 1e-3,n_test = 3, filename = 'MNIST', itermax=400, real_matrix=True)
 
@@ -169,7 +153,7 @@ print(s/20*100)
 # ld_SLS = 1e-1
 # step_SLS = 5e-2
 # t.test_speed_3(Xlist, 10, 2000 , 3, ld_L_1O, step_L_1O, ld_SLS, step_SLS, filename= 'random')
-t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_random', filename_SLS='speed3_comparison_SLS_random', dataset_name= 'Random', save = True)
+# t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_random', filename_SLS='speed3_comparison_SLS_random', dataset_name= 'Random', save = True)
 
 # np.random.seed(42)
 # images_std_lst = []
@@ -182,7 +166,7 @@ t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_random', filename_SLS='spee
 # ld_SLS = 1e0
 # step_SLS = 1e-3
 # t.test_speed_3(images_std_lst, 30, 400,3, ld_L_1O, step_L_1O, ld_SLS, step_SLS, filename= 'MNIST_2's)
-t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_MNIST_2', filename_SLS='speed3_comparison_SLS_MNIST_2', dataset_name= 'MNIST', save = True)
+# t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_MNIST_2', filename_SLS='speed3_comparison_SLS_MNIST_2', dataset_name= 'MNIST', save = True)
 
 # np.random.seed(42)
 np.random.shuffle(data)
@@ -202,45 +186,7 @@ step_SLS = 1e-3
 
 # print(data_arrithmia_list[0])
 # t.test_speed_3(data_arrithmia_list, 30, 400, 1, ld_L_1O, step_L_1O, ld_SLS, step_SLS, filename= 'Arrithmia_std')
-t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_Arrithmia_std', 
-               filename_SLS='speed3_comparison_SLS_Arrithmia_std', dataset_name= "Arrithmia" , save = True, ylim = False)
+# t.plot_speed_3(filename_L_1O='speed3_comparison_L_1O_Arrithmia_std', 
+#                filename_SLS='speed3_comparison_SLS_Arrithmia_std', dataset_name= "Arrithmia" , save = True, ylim = False)
 
-####################END######################
-
-# t.test_find_optimal_step_SLS_MNIST(images_std, steps = np.geomspace(1e-6, 1e-2, 5), itermax=400, filename= 'MNIST')# to run 
-
-# t.test_find_optimal_step_SLS_MNIST(data_arrithmia, steps = np.geomspace(1e-6, 1e-2, 5), itermax=400)# OK
-
-# t.test_find_optimal_params_SLS_real_matrix(images_std, Lambdas=np.geomspace(1e-2, 1e2, 5), steps= np.geomspace(1e-5, 1e-2, 5), n1 = 100, 
-#                                               n2= 784, s=30, n_test = 3, itermax= 13, save = True, tol = 1e-3)
-# (n1, n2) = np.shape(data_arrithmia)
-# t.test_find_optimal_params_SLS_real_matrix(data_arrithmia, Lambdas=np.geomspace(1e-2, 1e2, 5), steps= np.geomspace(1e-5, 1e-2, 5), n1 = n1, 
-#                                               n2= n2, s=30, n_test = 3, itermax= 13, save = True, tol = 1e-3)
-
-### delta influence on the optimal step
-# t.delta_optimal_SLS(step = [0.001,0.01,0.1], ld = [0.1, 1.0, 10.0], stochastic=True, save = True, n_test=100, tol = 1e-3, itermax=2000, filename='tol_3') #OK
-
-# t.delta_optimal_SLS(step = [1e-4, 1e-3, 1e-2], ld = [10.0, 100.0, 1000.0], stochastic=False, save = True, n_test=100, tol = 1e-3, itermax=2000, filename='tol_3') # to modify
-
-######## Boutsidis influence of c 
-# t.influence_of_c_Boutsidis_real_matrix(images_std, save = False, n_test=100) #OK done
-
-
-########
-
-
-# # methods = ['Landmark Selection', r'$L_1$ Orthogonal Regularization']
-# timer = time.time()
-# t.test_speed(data_arrithmia, itermax = 400, save= True, n_test=10) # 53min
-# print('time taken : ', time.time() - timer)
-
-
-# res = t.L_1O(np.random.rand(50,20), 50, 20, 10, 1e-7, 1e4, 2000, display = True, tol = 1e-3) #to del
-
-# t.test_speed(1.0, 0.001, n = 50, m = 20, method = 'Mathur_Stochastic', itermax = 2000, n_test = 100, save = True) #OK
-# t.test_speed(1e-07, 10000.0, n = 50, m = 20, method = 'Massart', itermax = 2000, n_test = 100, save = True) #OK
-
-# t.influence_of_c_Boutsidis()
-
-# t.SLS_real_perf_step_opti(images_std, save=True, itermax=31)
 
