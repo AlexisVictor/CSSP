@@ -243,10 +243,10 @@ def Approximation_factor_W(X, s, W):
 # label3 = r'$\alpha = ' + st3 + r'$, $\lambda = ' + ld3 + '$'
 # label4 = r'$\alpha = ' + st4 + r'$, $\lambda = ' + ld4 + '$'
 
-# (iter_1, penalization_1, f_1, W_arr_1) = massart(X, 20, 10, 5, ld_1, stepsize_1, 350, display = True, tol = 1e-8)#, plot5 = True )
-# (iter_2, penalization_2, f_2, W_arr_2) = massart(X, 20, 10, 5, ld_2, stepsize_2, 350, display = True, tol = 1e-8)#, plot5 = True )
-# (iter_3, penalization_3, f_3, W_arr_3) = massart(X, 20, 10, 5, ld_3, stepsize_3, 350, display = True, tol = 1e-8)#, plot5 = True )
-# (iter_4, penalization_4, f_4, W_arr_4) = massart(X, 20, 10, 5, ld_4, stepsize_4, 350, display = True, tol = 1e-8)#, plot5 = True )
+# (iter_1, penalization_1, f_1, W_arr_1) = L_1O(X, 20, 10, 5, ld_1, stepsize_1, 350, display = True, tol = 1e-8)#, plot5 = True )
+# (iter_2, penalization_2, f_2, W_arr_2) = L_1O(X, 20, 10, 5, ld_2, stepsize_2, 350, display = True, tol = 1e-8)#, plot5 = True )
+# (iter_3, penalization_3, f_3, W_arr_3) = L_1O(X, 20, 10, 5, ld_3, stepsize_3, 350, display = True, tol = 1e-8)#, plot5 = True )
+# (iter_4, penalization_4, f_4, W_arr_4) = L_1O(X, 20, 10, 5, ld_4, stepsize_4, 350, display = True, tol = 1e-8)#, plot5 = True )
 # # plt.plot(iter_1[1:], [matrix_norm(W_arr_1[i]) for i in range(1, len(W_arr_1))], label=r'$\alpha = 0.1$')
 # #         #  , label=r'penalization , $\alpha = 0.1$')
 # # plt.plot(iter_2[1:], [matrix_norm(W_arr_2[i]) for i in range(1, len(W_arr_2))], label=r'$\alpha = 0.01$')
@@ -313,11 +313,11 @@ def Approximation_factor_W(X, s, W):
 # plt.show()
 
 
-#############PLOT params massart################
+#############PLOT params L_1O################
 
-def plot_dict_(results_dict_massart, method = '', save=False, filename='', s=10, maxiter=12, iterlim = True, xind = (0,3), yind = (0,3), lb = 1.2, ub = 2.4):
-    keys = list(results_dict_massart.keys())
-    values = list(results_dict_massart.values())
+def plot_dict_(results_dict_L_1O, method = '', save=False, filename='', s=10, maxiter=12, iterlim = True, xind = (0,3), yind = (0,3), lb = 1.2, ub = 2.4):
+    keys = list(results_dict_L_1O.keys())
+    values = list(results_dict_L_1O.values())
     xl = 1
     yl = 1
     # print('this is keys : ', keys)
@@ -384,25 +384,25 @@ def plot_dict_(results_dict_massart, method = '', save=False, filename='', s=10,
 
 ##########MASSART######
 
-# dict_massart_20x_50 = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/20x50_s_10_massart_large__ .txt")
-# plot_dict_(dict_massart_20x_50, method = 'Massart', save=True, filename='params_massart_50x20', s=10, maxiter=2000, xind = (0,5), yind= (0,5), lb = 1.24, ub = 1.42)
+# dict_L_1O_20x_50 = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/20x50_s_10_L_1O_large__ .txt")
+# plot_dict_(dict_L_1O_20x_50, method = 'Massart', save=True, filename='params_L_1O_50x20', s=10, maxiter=2000, xind = (0,5), yind= (0,5), lb = 1.24, ub = 1.42)
 
-# dict_massart_arrithmia = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x281_s_30_massart_Arrithmia1.txt")
-# plot_dict_(dict_massart_arrithmia, method = 'Massart', save=True, filename='params_massart_arrithmia', s=30, maxiter=400, iterlim = True, xind = (1,6), yind= (0,5), lb = 1.3, ub = 1.93)
+# dict_L_1O_arrithmia = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x281_s_30_L_1O_Arrithmia1.txt")
+# plot_dict_(dict_L_1O_arrithmia, method = 'Massart', save=True, filename='params_L_1O_arrithmia', s=30, maxiter=400, iterlim = True, xind = (1,6), yind= (0,5), lb = 1.3, ub = 1.93)
 
-# dict_massart_MNIST = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x784_s_30_massart_MNIST1.txt")
-# plot_dict_(dict_massart_MNIST, method = 'Massart', save=True, filename='params_massart_MNIST', s=30, maxiter=400, iterlim = True, xind=(0,5), yind=(1,6), lb = 1.38, ub = 1.8)
+# dict_L_1O_MNIST = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x784_s_30_L_1O_MNIST1.txt")
+# plot_dict_(dict_L_1O_MNIST, method = 'Massart', save=True, filename='params_L_1O_MNIST', s=30, maxiter=400, iterlim = True, xind=(0,5), yind=(1,6), lb = 1.38, ub = 1.8)
 
 # ##############-----MATHUR  STOCHASTIC -----------################
-# dict_mathur_20x50 = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/20x50_s_10_mathur_stoch_large.txt")
-# plot_dict_(dict_mathur_20x50, method = 'Mathur', save=True, filename='params_mathur_20x50_stoch', s=10, maxiter=2000, xind = (0,4), yind= (0,4),  lb = 1.24, ub = 1.42)
+# dict_SLS_20x50 = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/20x50_s_10_SLS_stoch_large.txt")
+# plot_dict_(dict_SLS_20x50, method = 'Mathur', save=True, filename='params_SLS_20x50_stoch', s=10, maxiter=2000, xind = (0,4), yind= (0,4),  lb = 1.24, ub = 1.42)
 
-# dict_mathur_Arrithmia = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x280_s_30_mathur_stoch_Arrithmia_stoch.txt")
-# # plot_dict_(dict_mathur_Arrithmia, method = 'Mathur', save=True, filename='params_mathur_Arrithmia_stoch', s=30, iterlim=True, maxiter=400, xind = (0,4), yind= (0,5), lb = 1.3, ub = 1.93)
-# plot_dict_(dict_mathur_Arrithmia, method = 'Mathur', save=True, filename='params_mathur_Arrithmia_stoch_zoom', s=30, iterlim=True, maxiter=400, xind = (0,5), yind= (0,5), lb = 1.3, ub = 1.93)
+# dict_SLS_Arrithmia = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x280_s_30_SLS_stoch_Arrithmia_stoch.txt")
+# # plot_dict_(dict_SLS_Arrithmia, method = 'Mathur', save=True, filename='params_SLS_Arrithmia_stoch', s=30, iterlim=True, maxiter=400, xind = (0,4), yind= (0,5), lb = 1.3, ub = 1.93)
+# plot_dict_(dict_SLS_Arrithmia, method = 'Mathur', save=True, filename='params_SLS_Arrithmia_stoch_zoom', s=30, iterlim=True, maxiter=400, xind = (0,5), yind= (0,5), lb = 1.3, ub = 1.93)
 
-# dict_mathur_MNIST = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x784_s_30_mathur_stoch_MNIST_stoch_2.txt")
-# plot_dict_(dict_mathur_MNIST, method = 'Mathur', save=True, filename='params_mathur_MNIST_stoch', s=30, maxiter=500, iterlim = True, xind = (0,4), yind= (0,5), lb = 1.38, ub = 1.8)
+# dict_SLS_MNIST = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x784_s_30_SLS_stoch_MNIST_stoch_2.txt")
+# plot_dict_(dict_SLS_MNIST, method = 'Mathur', save=True, filename='params_SLS_MNIST_stoch', s=30, maxiter=500, iterlim = True, xind = (0,4), yind= (0,5), lb = 1.38, ub = 1.8)
 
 
 
@@ -411,14 +411,14 @@ def plot_dict_(results_dict_massart, method = '', save=False, filename='', s=10,
 
 ###############-----MATHUR NOT  STOCHASTIC -----------################
 
-# dict_mathur_stoch_20x50 = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/20x50_s_10_mathur_large_NOT_STOCH.txt")
-# plot_dict_(dict_mathur_stoch_20x50, method = 'Mathur_STOCH', save=False, filename='params_mathur_20x50_stoch', s=10, maxiter=2000, xind = (0,4), yind= (0,4), iterlim = True)
+# dict_SLS_stoch_20x50 = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/20x50_s_10_SLS_large_NOT_STOCH.txt")
+# plot_dict_(dict_SLS_stoch_20x50, method = 'Mathur_STOCH', save=False, filename='params_SLS_20x50_stoch', s=10, maxiter=2000, xind = (0,4), yind= (0,4), iterlim = True)
 
-# dict_mathur_MNIST_not_stoch = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x784_s_30_mathur_MNIST___not_stoch.txt")
-# plot_dict_(dict_mathur_MNIST_not_stoch, method = 'Mathur', save=False, filename='params_mathur_MNIST_not_stoch', s=30, maxiter=500, iterlim = True, xind = (0,7), yind= (0,7))
+# dict_SLS_MNIST_not_stoch = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x784_s_30_SLS_MNIST___not_stoch.txt")
+# plot_dict_(dict_SLS_MNIST_not_stoch, method = 'Mathur', save=False, filename='params_SLS_MNIST_not_stoch', s=30, maxiter=500, iterlim = True, xind = (0,7), yind= (0,7))
 
-# dict_mathur_Arrithmia_not_stoch = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x281_s_30_mathur_Arrithmia_not_stoch.txt")
-# plot_dict_(dict_mathur_Arrithmia_not_stoch, method = 'Mathur', save=False, filename='params_mathur_Arrithmia_not_stoch', s=30, iterlim=True, maxiter=500, xind = (0,7), yind= (0,7))
+# dict_SLS_Arrithmia_not_stoch = ft.read_dict_best_params_from_file("results/clean/optimal parameters/Optimal params text file/100x281_s_30_SLS_Arrithmia_not_stoch.txt")
+# plot_dict_(dict_SLS_Arrithmia_not_stoch, method = 'Mathur', save=False, filename='params_SLS_Arrithmia_not_stoch', s=30, iterlim=True, maxiter=500, xind = (0,7), yind= (0,7))
 
 
 
@@ -444,8 +444,8 @@ def plot_dict_(results_dict_massart, method = '', save=False, filename='', s=10,
 # images_std = np.array(images_stdfull[:100])
 # print(np.shape(images_std))
 
-# massart_results_X1 = massart( X1, 20, 50, 10, 1e-7, 1e4, 2000, display = True, tol = 1e-3, filename= 'LOR_Random_evolution_')
-# massart_results_ = massart( images_std, 100, 784, 30, 1e-1, 1e-3, 2000, display = True, tol = 1e-3, filename= 'LOR_MNIST_evolution_') #0.2599807458065957
+# L_1O_results_X1 = L_1O( X1, 20, 50, 10, 1e-7, 1e4, 2000, display = True, tol = 1e-3, filename= 'LOR_Random_evolution_')
+# L_1O_results_ = L_1O( images_std, 100, 784, 30, 1e-1, 1e-3, 2000, display = True, tol = 1e-3, filename= 'LOR_MNIST_evolution_') #0.2599807458065957
 
 
 # read a file that has been created like this 

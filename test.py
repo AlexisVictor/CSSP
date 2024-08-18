@@ -7,227 +7,7 @@ import pandas as pd
 
 # np.set_printoptions(precision=3)
 
-
-def test_massart():
-    n2 = 50
-    n1 = 20
-    s = 5
-    ld = 0.01
-    X = np.random.rand(n1, n2)
-    (W, XW, accuracy_opti) = massart(X, n1, n2, s, ld)
-    print('opti_results (XW) :  \n')
-    print(XW,'initial objectif value', accuracy_opti,'\n')
-    print('brute_force_results')
-    (C, accuracy_brute_force, indx) = brute_force(X, n1, n2, s)
-    print(C,'brute force optimal value', accuracy_brute_force)
-
-    Q = orthogonal_procrustes(C,XW)
-    print('\n this is Q  \n',Q,'\n this is CQ : \n',C@Q.T,'\n')
-
-    (U, Sigma, Z) = np.linalg.svd(W)
-    print('this is P tilde \n',U,'\n')
-    print('---------------- Optimization of only the regularization term ---------------- \n')
-    Wt = opti_RHS(X, W, False, n2, s)
-    # print('This is W \n', Wt)
-    (UU, SSigma, ZZ) = np.linalg.svd(Wt)
-    # print(U,'\n', Sigma,'\n', Z)
-    print('this is P almost exact \n',UU,'\n')
-    # print(UU)
-    UU_rd = round_matrix(UU,3)
-    print('P rounded \n',UU_rd,'\n')
-    UU_r = np.round(UU).astype(int)#round_matrix(UU)
-    print(UU_r)
-    print('is it a permutation matrix ', is_permuation_matrix(UU_r),'\n')
-
-    print(' Ps@Is not rounded \n', UU@np.eye(n2,s), '\n')
-    PsIs = np.round(UU@np.eye(n2,s)).astype(int)
-    XP_biz = X@(np.round(UU@np.eye(n2,s)).astype(int))
-    print('Ps@Is rounded \n', PsIs, '\n')
-
-
-
-    non_null_columns = find_non_null_columns(PsIs)
-    C_emp = X[:,non_null_columns]
-    print('brute force column idx', indx, '\n opti index ', non_null_columns)
-    print('brute force C matrix', C,'\n opti C matrix',C_emp)
-    print('this is the exact value obtain by optimization',function_objectif_C( X, C_emp))
-    print('this is the exact value obtain by brute force',function_objectif_C( X, C))
-    # print("Columns with non-null values:", non_null_columns)
-
-# def test_mathur():
-
-
-
-def test_1(): # Only massart tested 
-    # ft.create_matrix_file(n_test, 5, 8)
-    n2 = 8
-    n1 = 5
-    s = 3
-    n_test = 50
-    Lambdas = np.linspace(0.0000,4,200)
-    # Lambdas = [0.02]
-    erreur_massart = 0
-    erreur_massart_ld = [] 
-    erreur_avg = 0
-    iter1 = 150
-    iter2 = 1400    
-    j=0
-    for ld in Lambdas: 
-        j+=1
-        print(j)
-        erreur_massart = 0
-        for i in range(n_test):
-            X = ft.matrix_from_file(i, n1, n2)
-            (bt_ind, bt) = brute_force(X, n1, n2, s)
-            erreur_massart += (massart(bt, X, n1, n2, s, ld, iter1, display = False)[1] - bt) / bt
-            # erreur_mathur += (mathur(X, n1, n2, s)[1] - bt) / bt
-            # print('mathur : ', erreur_mathur)
-            # print('average : ', erreur_avg, '\n')
-            # print(i,brute_force(X, n1, n2, s)[0]!=massart(X, n1, n2, s, ld, display = False, step = 0.01)[0])
-        erreur_massart_ld.append(erreur_massart/n_test)
-        print('average error of massart method : ', erreur_massart/n_test)
-    for i in range(n_test):
-        X = ft.matrix_from_file(i, n1, n2)
-        (bt_ind, bt) = brute_force(X, n1, n2, s)
-        erreur_avg += (average(X, n1, n2, s)[0] - bt)/bt
-    erreur_avg /= n_test
-    print('average error of massart method : ', erreur_massart/n_test)
-    plt.plot(Lambdas, erreur_massart_ld, label = "err massart")
-    plt.plot((0.0001,0.15),(erreur_avg,erreur_avg), label = "avg error")
-    plt.legend()
-    plt.grid()
-    plt.savefig('test1.svg')
-    plt.close()
-    return None 
-
-
-def test_2(filename, save = False): # Only mathur tested 
-    n2 = 8
-    n1 = 5
-    s = 3
-    n_test = 100 #under 50
-    n_ld = 50 
-    ld_max = 2
-    ld_min = 0
-    ft.create_matrix_file(n_test, 5, 8)
-    Lambdas = np.linspace(ld_min,ld_max,n_ld)
-    err_mathur_ld = [] 
-    err_mathur_ld_std = []
-    erreur_avg = 0
-    iter1 = 100
-    iter2 = 1400
-    j=0
-    for i in range(n_test):
-        X = ft.matrix_from_file(i, n1, n2)
-        (bt_ind, bt) = brute_force(X, n1, n2, s)
-        erreur_avg += (average(X, n1, n2, s)[0] - bt)/bt
-    erreur_avg /= n_test
-    for ld in Lambdas: 
-        j+=1
-        print(j)
-        erreur_mathur_arr = np.zeros(n_test)
-        for i in range(n_test):
-            X = ft.matrix_from_file(i, n1, n2)
-            (bt_ind, bt) = brute_force(X, n1, n2, s)
-            mt = mathur( X, n1, n2, s, iter1, ld)
-            # print('brute force indices : ', bt_ind)
-            # print('indices of mathur : ', mt[0])
-            erreur_mathur_arr[i] = (mt[1] - bt) / bt
-        err_mathur_ld.append(erreur_mathur_arr.mean())
-        err_mathur_ld_std.append(erreur_mathur_arr.std())
-        print('average error of mathur method : ', erreur_mathur_arr.mean())
-    #### Standard deviation
-    # err_mathur_ld= np.array(err_mathur_ld)
-    window_size = 7
-    err_mathur_ld_ma = moving_average(err_mathur_ld, window_size) 
-    print(len(err_mathur_ld_ma))
-    for i in range(n_test):
-        X = ft.matrix_from_file(i, n1, n2)
-        (bt_ind, bt) = brute_force(X, n1, n2, s)
-        erreur_avg += (average(X, n1, n2, s)[0] - bt)/bt
-    erreur_avg /= n_test
-    plt.plot(Lambdas, np.array(err_mathur_ld) - np.array(err_mathur_ld_std),'b--')
-    plt.plot(Lambdas, np.array(err_mathur_ld) + np.array(err_mathur_ld_std), 'b--', label= 'mathur std')
-    plt.plot(Lambdas, err_mathur_ld, label = "err mathur", color = 'b')
-    plt.plot(Lambdas[window_size//2 : -(window_size//2 )], err_mathur_ld_ma, 'r')
-    plt.plot((ld_min, ld_max),(erreur_avg,erreur_avg), label = "avg error", color = 'k')
-    plt.plot()
-    plt.legend()
-    plt.grid()
-    if save:
-        plt.savefig('{}.svg'.format(filename))
-    plt.close()
-    return None 
-
-def test_3(filename): # massart vs mathur 
-    n2 = 8
-    n1 = 5
-    s = 3
-    n_test = 100 #under 100
-    n_ld = 75
-    ld_max = 2.5
-    ld_min = 0
-    window_size = 7
-    # ft.create_matrix_file(n_test, 5, 8)
-    Lambdas = np.linspace(ld_min, ld_max, n_ld)
-    # Lambdas = [0.04]
-    err_mathur_ld = [] 
-    err_mathur_ld_std = []
-    err_massart_ld = []
-    err_massart_ld_std = []
-    erreur_avg = 0
-    iter1 = 150
-    iter2 = 1400
-    j=0
-    for i in range(n_test):
-        X = ft.matrix_from_file(i, n1, n2)
-        (bt_ind, bt) = brute_force(X, n1, n2, s)
-        erreur_avg += (average(X, n1, n2, s)[0] - bt)/bt
-    erreur_avg /= n_test
-    iter1 = 150
-    iter2 = 1400
-    j=0
-    for ld in Lambdas: 
-        j+=1
-        print(j)
-        err_mathur_arr = np.zeros(n_test)
-        err_massart_arr = np.zeros(n_test)
-        for i in range(n_test):
-            X = ft.matrix_from_file(i, n1, n2)
-            (bt_ind, bt) = brute_force(X, n1, n2, s)
-            err_mathur_arr[i] = (mathur( X, n1, n2, s, iter1, ld)[1] - bt) / bt
-            err_massart_arr[i] += (massart(bt, X, n1, n2, s, ld, iter1, iter2, display = False)[1] - bt) / bt
-        err_mathur_ld.append(err_mathur_arr.mean())
-        err_mathur_ld_std.append(err_mathur_arr.std())
-        err_massart_ld.append(err_massart_arr.mean())
-        err_massart_ld_std.append(err_massart_arr.std())
-        print('average error of mathur method : ', err_mathur_arr.mean())
-        print('average error of massart method : ', err_massart_arr.mean())
-    #### Moving average
-    err_mathur_ld_ma = moving_average(err_mathur_ld, window_size) 
-    err_massart_ld_ma = moving_average(err_massart_ld, window_size) 
-    # err_mathur_ld= np.array(err_mathur_ld)
-    for i in range(n_test):
-        X = ft.matrix_from_file(i, n1, n2)
-        (bt_ind, bt) = brute_force(X, n1, n2, s)
-        erreur_avg += (average(X, n1, n2, s)[0] - bt)/bt
-    erreur_avg /= n_test
-    plt.plot(Lambdas, np.array(err_massart_ld) - np.array(err_massart_ld_std), 'g--')
-    plt.plot(Lambdas,  np.array(err_massart_ld) + np.array(err_massart_ld_std),'g--', label= 'massart std')
-    plt.plot(Lambdas, err_massart_ld, label = "err massart", color = 'g')
-    plt.plot(Lambdas[window_size//2 : -(window_size//2 )], err_massart_ld_ma, 'b')
-    plt.plot(Lambdas, np.array(err_mathur_ld) - np.array(err_mathur_ld_std),'r--')
-    plt.plot(Lambdas, np.array(err_mathur_ld) + np.array(err_mathur_ld_std), 'r--', label= 'mathur std')
-    plt.plot(Lambdas, err_mathur_ld, label = "err mathur", color = 'r')
-    plt.plot(Lambdas[window_size//2 : -(window_size//2 )], err_mathur_ld_ma, 'b')
-    plt.plot((ld_min, ld_max),(erreur_avg,erreur_avg), label = "avg error", color = 'k')
-    plt.legend()
-    plt.grid()
-    plt.savefig('{}.svg'.format(filename))
-    plt.close()
-    return None 
-
-def test_find_optimal_params_mathur(Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 50, delta = 10, s = 10, n_test = 10, itermax = 2000, stochastic = True, save = False, bigsize= True, size = 'large', tol = 1e-4): # massart vs mathur 
+def test_find_optimal_params_SLS(Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 50, delta = 10, s = 10, n_test = 10, itermax = 2000, stochastic = True, save = False, bigsize= True, size = 'large', tol = 1e-4): # L_1O vs SLS 
     if (size != 'large'):
         np.printoptions(precision=3) 
     ld_max = Lambdas[-1]
@@ -236,15 +16,15 @@ def test_find_optimal_params_mathur(Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 5
     step_min = steps[0]
     step_max = steps[-1]
     n_steps = len(steps)
-    results_dict_mathur = {}
-    results_dict_mathur_std = {}
+    results_dict_SLS = {}
+    results_dict_SLS_std = {}
     j = 0
     for ld in Lambdas:  
         for step in steps:
             nn = []
             j += 1
             # print(j)
-            err_mathur_arr = np.zeros(n_test)
+            err_SLS_arr = np.zeros(n_test)
             nn = np.zeros(n_test)
             start_time = time.time()
             print('ld : ', ld, 'step : ', step)
@@ -252,24 +32,24 @@ def test_find_optimal_params_mathur(Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 5
                 for i in range(n_test):
                     # print('test ', i)
                     # print('test ', i)
-                    (indexes, m, n, t) = mathur( X, n1, n2, s, ld, step, itermax, display=False, tol = tol, stochastic=stochastic)
-                    err_mathur_arr[i] = Approximation_factor(X, s, indexes)
+                    (indexes, m, n, t) = SLS( X, n1, n2, s, ld, step, itermax, display=False, tol = tol, stochastic=stochastic, info = True)
+                    err_SLS_arr[i] = Approximation_factor(X, s, indexes)
                     nn[i] = n
                     # print(n)
             else:
                 for i in range(n_test):
                     X = ft.matrix_from_file(i, n1, n2)
                     (bt_ind, bt) = brute_force(X, n1, n2, s)
-                    (indexes, m, n, t) = mathur( X, n1, n2, s, ld, step, itermax, display=False, tol=tol)
-                    err_mathur_arr[i] = ( m - bt) / bt
+                    (indexes, m, n, t) = SLS( X, n1, n2, s, ld, step, itermax, display=False, tol=tol, info = True)
+                    err_SLS_arr[i] = ( m - bt) / bt
                     nn[i] = n
             # print(nn)
             end_time = time.time()
             print(f"Time taken for this configuration : {end_time - start_time} seconds")
-            results_dict_mathur[(ld, step)] = (err_mathur_arr.mean(), nn.mean(), err_mathur_arr.std(), True) if nn.mean() < (0.90*itermax) else (err_mathur_arr.mean(), nn.mean(), err_mathur_arr.std(), False)
-            results_dict_mathur_std[(ld, step)] = err_mathur_arr.std()
-            print('standard deviation of mathur methof : ', err_mathur_arr.std())
-            print('average error of mathur method : ', err_mathur_arr.mean())
+            results_dict_SLS[(ld, step)] = (err_SLS_arr.mean(), nn.mean(), err_SLS_arr.std(), True) if nn.mean() < (0.90*itermax) else (err_SLS_arr.mean(), nn.mean(), err_SLS_arr.std(), False)
+            results_dict_SLS_std[(ld, step)] = err_SLS_arr.std()
+            print('standard deviation of SLS methof : ', err_SLS_arr.std())
+            print('average error of SLS method : ', err_SLS_arr.mean())
             print('averge niter : ', nn.mean())
     # Store the results into a file
     if bigsize:
@@ -278,21 +58,21 @@ def test_find_optimal_params_mathur(Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 5
         compare = 'bt'
     if save:
         if stochastic:
-            ft.store_dict_in_file_best_params(results_dict_mathur, f'results/{n1}x{n2}_s_{s}_mathur_stoch_{size}.txt')
+            ft.store_dict_in_file_best_params(results_dict_SLS, f'results/{n1}x{n2}_s_{s}_SLS_stoch_{size}.txt')
         else:
-            ft.store_dict_in_file_best_params(results_dict_mathur, f'results/{n1}x{n2}_s_{s}_mathur_{size}.txt')
+            ft.store_dict_in_file_best_params(results_dict_SLS, f'results/{n1}x{n2}_s_{s}_SLS_{size}.txt')
 
     ### Visualization
     if stochastic:
-        ft.plot_dict(results_dict_mathur, n1, n2, 'Mathur Stochastic',  save = save, filename = 'stoch')
+        ft.plot_dict(results_dict_SLS, n1, n2, 'SLS Stochastic',  save = save, filename = 'stoch')
     else: 
-        ft.plot_dict(results_dict_mathur, n1, n2, 'Mathur',  save = save, filename = 'not stoch')
+        ft.plot_dict(results_dict_SLS, n1, n2, 'SLS',  save = save, filename = 'not stoch')
     return None 
-#here 
-#used
-def test_find_optimal_params_mathur_real_matrix(X, Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 50, delta = 10, s = 10, 
+
+
+def test_find_optimal_params_SLS_real_matrix(X, Lambdas=[1.0], steps=[1e-1], n1 = 20, n2 = 50, delta = 10, s = 10, 
                                                 n_test = 10, itermax = 2000, stochastic = True, save = False, bigsize= True, 
-                                                size = 'large', tol = 1e-4, X_list = False, filename = ''): # massart vs mathur 
+                                                size = 'large', tol = 1e-4, X_list = False, filename = ''): # L_1O vs SLS 
     ld_max = Lambdas[-1]
     ld_min = Lambdas[0]
     n_ld = len(Lambdas)
@@ -305,8 +85,8 @@ def test_find_optimal_params_mathur_real_matrix(X, Lambdas=[1.0], steps=[1e-1], 
     else:
         n1 = np.shape(X)[0]
         n2 = np.shape(X)[1]
-    results_dict_mathur = {}
-    results_dict_mathur_std = {}
+    results_dict_SLS = {}
+    results_dict_SLS_std = {}
     j = 0
     if X_list:
         pass
@@ -317,7 +97,7 @@ def test_find_optimal_params_mathur_real_matrix(X, Lambdas=[1.0], steps=[1e-1], 
             nn = []
             j += 1
             # print(j)
-            err_mathur_arr = np.zeros(n_test)
+            err_SLS_arr = np.zeros(n_test)
             nn = np.zeros(n_test)
             start_time = time.time()
             print('ld : ', ld, 'step : ', step)
@@ -326,18 +106,18 @@ def test_find_optimal_params_mathur_real_matrix(X, Lambdas=[1.0], steps=[1e-1], 
                     X_ = X[i]
                 # print('test ', i)
                 print('test ', i)
-                (indexes, m, n, t) = mathur( X_, n1, n2, s, ld, step, itermax, display=False, tol = tol, stochastic=stochastic)
-                err_mathur_arr[i] = Approximation_factor(X_, s, indexes)
+                (indexes, m, n, t) = SLS( X_, n1, n2, s, ld, step, itermax, display=False, tol = tol, stochastic=stochastic, info = True)
+                err_SLS_arr[i] = Approximation_factor(X_, s, indexes)
                 nn[i] = n
                 print(n)
-                print('error : ', err_mathur_arr[i])
+                print('error : ', err_SLS_arr[i])
             # print(nn)
             end_time = time.time()
             print(f"Time taken for this configuration : {end_time - start_time} seconds")
-            results_dict_mathur[(ld, step)] = (err_mathur_arr.mean(), nn.mean(), err_mathur_arr.std(), True) if nn.mean() < (0.90*itermax) else (err_mathur_arr.mean(), nn.mean(), err_mathur_arr.std(), False)
-            results_dict_mathur_std[(ld, step)] = err_mathur_arr.std()
-            print('standard deviation of mathur methof : ', err_mathur_arr.std())
-            print('average error of mathur method : ', err_mathur_arr.mean())
+            results_dict_SLS[(ld, step)] = (err_SLS_arr.mean(), nn.mean(), err_SLS_arr.std(), True) if nn.mean() < (0.90*itermax) else (err_SLS_arr.mean(), nn.mean(), err_SLS_arr.std(), False)
+            results_dict_SLS_std[(ld, step)] = err_SLS_arr.std()
+            print('standard deviation of SLS methof : ', err_SLS_arr.std())
+            print('average error of SLS method : ', err_SLS_arr.mean())
             print('averge niter : ', nn.mean())
     # Store the results into a file
     if bigsize:
@@ -346,63 +126,27 @@ def test_find_optimal_params_mathur_real_matrix(X, Lambdas=[1.0], steps=[1e-1], 
         compare = 'bt'
     if save:
         if stochastic:
-            ft.store_dict_in_file_best_params(results_dict_mathur, f'results/{n1}x{n2}_s_{s}_mathur_stoch_'+ filename +'.txt')
+            ft.store_dict_in_file_best_params(results_dict_SLS, f'results/{n1}x{n2}_s_{s}_SLS_stoch_'+ filename +'.txt')
         else:
-            ft.store_dict_in_file_best_params(results_dict_mathur, f'results/{n1}x{n2}_s_{s}_mathur_'+ filename +'.txt')
+            ft.store_dict_in_file_best_params(results_dict_SLS, f'results/{n1}x{n2}_s_{s}_SLS_'+ filename +'.txt')
 
     ### Visualization
     if stochastic:
-        ft.plot_dict(results_dict_mathur, n1, n2, 'Mathur Stochastic',  save = save, filename = 'stoch')
+        ft.plot_dict(results_dict_SLS, n1, n2, 'SLS Stochastic',  save = save, filename = 'stoch')
     else: 
-        ft.plot_dict(results_dict_mathur, n1, n2, 'Mathur',  save = save, filename = filename)
+        ft.plot_dict(results_dict_SLS, n1, n2, 'SLS',  save = save, filename = filename)
     return None 
 #here 
 # Lambda: 6.309573444801933, step: 0.001584893192461114
 #  Lambda: 2.51188643150958, step: 0.000630957344480193,
-# test_find_optimal_params_mathur(np.array([2.5, 6.3]), np.array([0.000630957344480193, 0.001584893192461114]))
+# test_find_optimal_params_SLS(np.array([2.5, 6.3]), np.array([0.000630957344480193, 0.001584893192461114]))
+
 
 #used
-def test_find_optimal_step_mathur_MNIST(X, steps = np.geomspace(1e-5, 1e-1, 5), itermax = 200, s = 30, filename = '_'):
-    ld = 10
-    delta = 10
-    M = 5 
-    (n1, n2) = np.shape(X)
-    svd_error = CSSP_approximation_svd(X, n1, n2, s)[1]
-    mathur_approximation_factor = []
-    print('shape of X : ', np.shape(X))
-    print('steps : ', steps)
-    for step in steps:
-        print('step : ', step)
-        (indexes, error, n, t) = mathur( X, n1, n2, s, ld, step, itermax, display=False, tol = 1e-3, M = M, delta = delta)
-        mathur_approximation_factor.append(error/svd_error)
-        print('approximation factor : ', error/svd_error)
-        print('shape of X : ', np.shape(X))
-    # write a file with the results 
-    with open('results/MNIST_mathur_step.txt', 'w') as f:
-        f.write('steps : ')
-        f.write(str(steps))
-        f.write('\n')
-        f.write('Approximation factors : ')
-        f.write(str(mathur_approximation_factor))
-    # plot with the steps as log scale
-    plt.plot(steps, mathur_approximation_factor)
-    plt.xscale('log')
-    plt.xlabel('step')
-    plt.ylabel('Approximation factor')
-    plt.grid()
-    plt.savefig('results/MNIST_mathur_step'+filename+'.svg')
-
-#used
-def test_find_optimal_params_massart(Lambdas, steps, n1 = 20, n2 = 50, s = 10, n_test = 10, itermax = 2000, filename = '_',
+def test_find_optimal_params_L_1O(Lambdas, steps, n1 = 20, n2 = 50, s = 10, n_test = 10, itermax = 2000, filename = '_',
                                      save = False, bigsize= True, size = 'large', tol = 1e-3, smart_start = False): 
-    ld_max = Lambdas[-1]
-    ld_min = Lambdas[0]
-    n_ld = len(Lambdas)
-    step_min = steps[0]
-    step_max = steps[-1]
-    n_steps = len(steps)
-    results_dict_massart = {}
-    results_dict_massart_std = {}
+    results_dict_L_1O = {}
+    results_dict_L_1O_std = {}
     j = 0
     
     for ld in Lambdas:  
@@ -411,92 +155,87 @@ def test_find_optimal_params_massart(Lambdas, steps, n1 = 20, n2 = 50, s = 10, n
             j += 1
             print(j)
             print('ld : ', ld, 'step : ', step)
-            err_massart_arr = np.zeros(n_test)
+            err_L_1O_arr = np.zeros(n_test)
             start_time = time.time()
             if bigsize:
                 for i in range(n_test):
                     X = ft.matrix_from_file(i, n1, n2)
                     svd_error = CSSP_approximation_svd(X, n1, n2, s)[1]
                     # print('test ', i)
-                    (indexes, error, n) = massart( X, n1, n2, s, ld, step, itermax, display=False, tol = tol)
-                    err_massart_arr[i] = error/svd_error
+                    (indexes, error, n) = L_1O( X, n1, n2, s, ld, step, itermax, display=False, tol = tol)
+                    err_L_1O_arr[i] = error/svd_error
                     nn[i] = n
             else:
                 for i in range(n_test):
                     X = ft.matrix_from_file(i, n1, n2)
                     (bt_ind, bt) = brute_force(X, n1, n2, s)
-                    # (indexes, m, n) = mathur( X, n1, n2, s, ld, step, itermax, display=False, tol=tol)
-                    # err_massart_arr[i] = ( m - bt) / bt
+                    # (indexes, m, n) = SLS( X, n1, n2, s, ld, step, itermax, display=False, tol=tol, info = True)
+                    # err_L_1O_arr[i] = ( m - bt) / bt
                     # nn[i] = n
             # print(nn)
             print(nn)
             end_time = time.time()
             print(f"Time taken for this configuration : {end_time - start_time} seconds")
-            results_dict_massart[(ld, step)] = (err_massart_arr.mean(), nn.mean(), err_massart_arr.std(), True) if nn.mean() < (0.95*itermax) else (err_massart_arr.mean(), nn.mean(), err_massart_arr.std(), False) # to verify 
-            results_dict_massart_std[(ld, step)] = err_massart_arr.std()
-            print('standard deviation of massart methof : ', err_massart_arr.std())
-            print('average error of massart method : ', err_massart_arr.mean())
+            results_dict_L_1O[(ld, step)] = (err_L_1O_arr.mean(), nn.mean(), err_L_1O_arr.std(), True) if nn.mean() < (0.95*itermax) else (err_L_1O_arr.mean(), nn.mean(), err_L_1O_arr.std(), False) # to verify 
+            results_dict_L_1O_std[(ld, step)] = err_L_1O_arr.std()
+            print('standard deviation of L_1O methof : ', err_L_1O_arr.std())
+            print('average error of L_1O method : ', err_L_1O_arr.mean())
     # Store the results into a file
     if bigsize:
         compare = 'svd'
     else:
         compare = 'bt'
     if save:
-        ft.store_dict_in_file_best_params(results_dict_massart, f'results/{n1}x{n2}_s_{s}_massart_{size}_{filename}.txt')
+        ft.store_dict_in_file_best_params(results_dict_L_1O, f'results/{n1}x{n2}_s_{s}_L_1O_{size}_{filename}.txt')
     ### Visualization
-    ft.plot_dict(results_dict_massart, n1, n2, 'Massart', save = save, filename = filename)
+    ft.plot_dict(results_dict_L_1O, n1, n2, 'L_1O', save = save, filename = filename)
     return None
 
 #used
-def test_find_optimal_params_massart_real_matrix(X, Lambdas, steps, s = 10, itermax = 2000, filename = '_unknown',
+def test_find_optimal_params_L_1O_real_matrix(X, Lambdas, steps, s = 10, itermax = 2000, filename = '_unknown',
                                                   save = False, tol = 1e-3, display = False, n_trials = 1): 
-    ld_max = Lambdas[-1]
-    ld_min = Lambdas[0]
+    """
+    store in a file the dictionary of the results of the hyperparameters search"""
     (n1, n2) = np.shape(X)
-    n_ld = len(Lambdas)
-    step_min = steps[0]
-    step_max = steps[-1]
-    n_steps = len(steps)
-    results_dict_massart = {}
-    results_dict_massart_std = {}
+    results_dict_L_1O = {}
     j = 0
     start_time = time.time()
     svd_error = CSSP_approximation_svd(X, n1, n2, s)[1]
     print('time taken by the svd : ', time.time() - start_time)
     for ld in Lambdas:  
         for step in steps:
-            # results_dict_massart[(ld, step)] 
+            # results_dict_L_1O[(ld, step)] 
             nn=0
-            err_massart = 0
+            err_L_1O = 0
             for i in range(n_trials):
                 start_time = time.time()
                     # print('test ', i)
-                (indexes, error, n) = massart( X, n1, n2, s, ld, step, itermax, display=display, tol = 1e-10)
+                (indexes, error, n) = L_1O( X, n1, n2, s, ld, step, itermax, display=display, tol = 1e-10)
                 print(n)
                 nn += n
-                err_massart += error/svd_error
+                err_L_1O += error/svd_error
                 end_time = time.time()
                 print('config ld, step : ', (ld, step))
                 print(f"Time taken : {end_time - start_time} seconds")
                  # to verify 
-                print(' error of massart method : ',err_massart)
+                print(' error of L_1O method : ',err_L_1O)
                 print('number of iterations : ', n)
-            err_massart /= n_trials
+            err_L_1O /= n_trials
             nn /= n_trials
-            results_dict_massart[(ld, step)] = (err_massart, nn, 0, True) if n < (itermax)*1.1 else (err_massart, nn, 0, False)
-            # results_dict_massart[(ld, step)] = tuple([x/n_trials for x in results_dict_massart[(ld, step)]])
+            results_dict_L_1O[(ld, step)] = (err_L_1O, nn, 0, True) if n < (itermax)*1.1 else (err_L_1O, nn, 0, False)
+            # results_dict_L_1O[(ld, step)] = tuple([x/n_trials for x in results_dict_L_1O[(ld, step)]])
     # Store the results into a file
     compare = 'svd'
     if save:
-        ft.store_dict_in_file_best_params(results_dict_massart, f'results/{n1}x{n2}_s_{s}_massart_{filename}.txt')
+        ft.store_dict_in_file_best_params(results_dict_L_1O, f'results/{n1}x{n2}_s_{s}_L_1O_{filename}.txt')
     ### Visualization
-    ft.plot_dict(results_dict_massart, n1, n2, r'L_1 orthogonal regularization', save = save, filename = filename, s=s)
+    ft.plot_dict(results_dict_L_1O, n1, n2, r'L_1 orthogonal regularization', save = save, filename = filename, s=s)
     return None
 
 
-def influence_of_M_mathur(X, n1, n2, s, ld, step, n_test = 12, itermax = 2000, real_matrix = False, filename = ''): #
+def influence_of_M_SLS(X, n1, n2, s, ld, step, n_test = 12, itermax = 2000, real_matrix = False, filename = ''): #
     """
-    Test the influence of M on the performance of the mathur algorith
+    Test the influence of M on the performance of the SLS algorith
     """
     M = 10
     save = True
@@ -516,14 +255,14 @@ def influence_of_M_mathur(X, n1, n2, s, ld, step, n_test = 12, itermax = 2000, r
         for j in range(n_test):
             if real_matrix == False:
                 X = ft.matrix_from_file(j, n1, n2)
-            error = mathur(X, n1, n2, s, ld, step, itermax, delta = 1, M = M_, display=False, tol = 1e-3)
+            error = SLS(X, n1, n2, s, ld, step, itermax, delta = 1, M = M_, display=False, tol = 1e-3, info = True)
             print('nite : ', error[2])
             results_mat[i, j] = error[1]/error_svd[j]
             print('M : ', M_, 'error : ', error[1]/error_svd[j])
     np.savetxt('results/M_'+filename+'.txt', results_mat)
     return None
 
-def plot_influence_of_M_mathur(filename = '', save = False):
+def plot_influence_of_M_SLS(filename = '', save = False):
     mat = np.loadtxt('results/M_'+filename+'.txt')
     M = 10
     M = np.arange(1,M,2)
@@ -543,70 +282,7 @@ def plot_influence_of_M_mathur(filename = '', save = False):
     else:
         plt.show()
 
-def delta_optimal_mathur( n1 = 20, n2 = 50 , s = 1, ld = [1, 5, 10], step = [1e-4, 1e-3, 1e-2], 
-                         delta = [1,2,3,10], itermax = 300, n_test = 10, artificial = False, 
-                         save = False, stochastic = True, tol = 1e-5, filename = '_'):  
-    """
-    Test the influence of delta on the performance of the mathur algorithm
-    """
-    results_err = {}
-    results_iter = {}
-    delta = np.concatenate((np.array([1.0]), np.linspace(10.0, 100.0, 10))) 
-    for ld_ in ld:
-        results_err[ld_] = {}
-        results_iter[ld_] = {}
-        for step_ in step:
-            results_err[ld_][step_] = np.zeros((2,len(delta)))
-            results_iter[ld_][step_] = np.zeros((2,len(delta)))
-            print('ld : ', ld_, 'step : ', step_)
-            timer = time.time()
-            for i, delta_ in zip(range(len(delta)),delta):
-                err = np.zeros(n_test)
-                # err_std = np.zeros(n_test)
-                niter = np.zeros(n_test)
-                # niter_std = np.zeros(n_test)
-                for j in range(n_test):
-                    if artificial:
-                        X = ft.read_artificial_matrix_from_file(n1, n2, s, delta_)
-                    else:
-                        X = ft.matrix_from_file(j, n1, n2)
-                        if stochastic:
-                            mathur_results = mathur(X, n1, n2, s, ld_, step_, maxiter= itermax, delta=delta_, display = False, tol=tol, stochastic = True)
-                        else:
-                            mathur_results = mathur(X, n1, n2, s, ld_, step_, maxiter= itermax, delta=delta_, display = False, tol=tol, stochastic = False)
-                        err[j] = Approximation_factor(X, s, mathur_results[0])
-                        niter[j] = mathur_results[2] - 12
-                results_err[ld_][step_][0,i] = err.mean()
-                results_err[ld_][step_][1,i] = err.std()
-                results_iter[ld_][step_][0,i] = niter.mean()
-                results_iter[ld_][step_][1,i] = niter.std()
-            print('time of this config : ', time.time() - timer)
-            
-    fig, axs = plt.subplots(3, 3, figsize=(9, 9), sharex=True, sharey=False)
-    for i, ld_ in enumerate(results_err.keys()):
-        for j, step_ in enumerate(results_err[ld_].keys()):
-            ax = axs[i, j]
-            ax.plot(delta, results_err[ld_][step_][0])#, yerr=results_err[ld_][step_][1])
-            ax.set_xlabel(r'$\delta$')
-            ax.set_ylabel('Error')
-            ax.label_outer()
-            ax.set_title(r'$\lambda$' + f"={ld_}, step={step_}")
-            ax1 = ax.twinx()
-            ax1.plot(delta, results_iter[ld_][step_][0], color='k')
-            ax1.set_ylabel('Number of iterations')
-    for ax in axs.flat:
-        ax.label_outer()
-    plt.tight_layout()
-    if save:
-        if stochastic:
-            plt.savefig('results/delta'+ filename +'optimal_mathur_stoch.svg')
-        else:
-            plt.savefig('results/delta'+ filename +'optimal_mathur.svg')
-    else:
-        plt.show()
-    return None
-
-def mathur_real_perf_step_opti(X, s = 100,  itermax = 31, save = False, filename = '_', tol = 1e-3):
+def SLS_real_perf_step_opti(X, s = 100,  itermax = 31, save = False, filename = '_', tol = 1e-3):
     ld = 10
     delta = 10
     M = 5
@@ -620,8 +296,8 @@ def mathur_real_perf_step_opti(X, s = 100,  itermax = 31, save = False, filename
     (Ws , value_svd_opti) = CSSP_approximation_svd(X, n1, n2, s[0])
     for step_ in step: 
         print('step : ', step_)
-        (indexes, value_mathur, n, t) = mathur( X, n1, n2, s[0], ld, step_, itermax, display=False, tol = tol, stochastic = True)
-        approx[i] = value_mathur/value_svd_opti
+        (indexes, value_SLS, n, t) = SLS( X, n1, n2, s[0], ld, step_, itermax, display=False, tol = tol, stochastic = True, info = True)
+        approx[i] = value_SLS/value_svd_opti
         print('Approximation factor : ', approx[i])
     plt.plot(step, approx)
     plt.xlabel('step')
@@ -629,8 +305,8 @@ def mathur_real_perf_step_opti(X, s = 100,  itermax = 31, save = False, filename
     plt.grid()
     plt.savefig('results/step_opti'+filename+'.svg')
 
-def mathur_real_perf(X, step = 0.01, itermax = 150):
-    mathur
+def SLS_real_perf(X, step = 0.01, itermax = 150):
+    SLS
 
 def Boutsidis_real_perf(X):
     s = [100]
@@ -640,23 +316,23 @@ def Boutsidis_real_perf(X):
 
 
 
-def massart_mathur_comparison(n1 = 20, n2 = 50, s = 10, itermax = 12, n_test = 10, save = False, filename = '_'):
-    ld_mathur_stoch = 1e0
-    step_mathur_stoch = 1e-2
-    # ld_mathur_not_stoch = 1e1
-    # step_mathur_not_stoch = 1e-4
-    # ld_massart_smart = 1e-8
-    # step_massart_smart = 1e5
-    ld_massart = 1e-8
-    step_massart = 1e5
+def L_1O_SLS_comparison(n1 = 20, n2 = 50, s = 10, itermax = 12, n_test = 10, save = False, filename = '_'):
+    ld_SLS_stoch = 1e0
+    step_SLS_stoch = 1e-2
+    # ld_SLS_not_stoch = 1e1
+    # step_SLS_not_stoch = 1e-4
+    # ld_L_1O_smart = 1e-8
+    # step_L_1O_smart = 1e5
+    ld_L_1O = 1e-8
+    step_L_1O = 1e5
     tol = 1e-3
     s = np.arange(1,15,1)
-    err_mathur = np.zeros(len(s))
-    err_massart_smart = np.zeros(len(s))
-    err_massart = np.zeros(len(s)) 
-    err_leverage_scores = np.zeros(len(s))
-    err_mathur_not_stoch = np.zeros(len(s))
+    err_SLS = np.zeros(len(s))
+    err_L_1O_smart = np.zeros(len(s))
+    err_L_1O = np.zeros(len(s)) 
+    err_SLS_not_stoch = np.zeros(len(s))
     err_uniform = np.zeros(len(s))
+    err_Boutsidis = np.zeros(len(s))
     n_test_fast = 20
     svd_error = np.zeros(n_test)
     for (i,s_) in zip(range(len(s)),s):
@@ -665,25 +341,24 @@ def massart_mathur_comparison(n1 = 20, n2 = 50, s = 10, itermax = 12, n_test = 1
         for j in range(n_test):
             X = ft.matrix_from_file(j, n1, n2)
             svd_error[j] = CSSP_approximation_svd(X, n1, n2, s_)[1]
-            (indexes, m, n) = massart( X, n1, n2, s_, ld_massart, step_massart, itermax, display=False, tol = tol)
-            err_massart[i] += m/svd_error[j]
-            # (indexes, m, n) = massart( X, n1, n2, s_, ld_massart_smart, step_massart_smart, itermax, display=False, tol = tol, smart_start=True)
-            # err_massart_smart[i] += m/svd_error[j]
-            (indexes, m, n, t) = mathur( X, n1, n2, s_, ld_mathur_stoch, step_mathur_stoch, itermax, display=False, tol = tol, stochastic = True)
-            err_mathur[i] += m/svd_error[j]
-            # (indexes, m, n, t) = mathur( X, n1, n2, s_, ld_mathur_not_stoch, step_mathur_not_stoch, itermax, display=False, tol = tol, stochastic = True)
-            # err_mathur_not_stoch[i] += m/svd_error[j]
-            # C_Boutsidis = Boutsidis_Mahoney_Drineas(X, s_, c = 1)
+            (indexes, m, n) = L_1O( X, n1, n2, s_, ld_L_1O, step_L_1O, itermax, display=False, tol = tol)
+            err_L_1O[i] += m/svd_error[j]
+            # (indexes, m, n) = L_1O( X, n1, n2, s_, ld_L_1O_smart, step_L_1O_smart, itermax, display=False, tol = tol, smart_start=True)
+            # err_L_1O_smart[i] += m/svd_error[j]
+            (indexes, m, n, t) = SLS( X, n1, n2, s_, ld_SLS_stoch, step_SLS_stoch, itermax, display=False, tol = tol, stochastic = True, info = True)
+            err_SLS[i] += m/svd_error[j]
+            # (indexes, m, n, t) = SLS( X, n1, n2, s_, ld_SLS_not_stoch, step_SLS_not_stoch, itermax, display=False, tol = tol, stochastic = True)
+            # err_SLS_not_stoch[i] += m/svd_error[j]
+            (C_Boutsidis, m) = Boutsidis_Mahoney_Drineas(X, s_, c = 10*s_)
+            err_Boutsidis[i] += m/svd_error[j]
             # print('Boutsidis done')
             # err_Boutsidis[i] += Approximation_factor(X, s_, C_Boutsidis)
-            (C_leverage_scores, m) = Leverage_scores(X, s_, c = 2)
-            err_leverage_scores[i] += Approximation_factor_C(X, s_, C_leverage_scores)
             (C_uniform, m) = Uniform_sampling(X, s_)
             err_uniform[i] += Approximation_factor_C(X, s_, C_uniform)
         # print(f"Time taken for this configuration : {time.time() - timer} seconds")
-    err_massart /= n_test
-    err_massart_smart /= n_test
-    err_mathur /= n_test
+    err_L_1O /= n_test
+    err_L_1O_smart /= n_test
+    err_SLS /= n_test
     # err_Boutsidis /= n_test_fast
     err_leverage_scores /= n_test
     err_uniform /= n_test
@@ -695,32 +370,23 @@ def massart_mathur_comparison(n1 = 20, n2 = 50, s = 10, itermax = 12, n_test = 1
             f.write('s : ')
             f.write(str(s))
             f.write('\n')
-            f.write('err_massart : ')
-            f.write(str(err_massart))
+            f.write('err_L_1O : ')
+            f.write(str(err_L_1O))
             f.write('\n')
-            f.write('err_massart_smart : ')
-            f.write(str(err_massart_smart))
+            f.write('err_SLS : ')
+            f.write(str(err_SLS))
             f.write('\n')
-            f.write('err_mathur : ')
-            f.write(str(err_mathur))
-            f.write('\n')
-            f.write('err_mathur_not_stoch : ')
-            f.write(str(err_mathur_not_stoch))
-            f.write('\n')
-            # f.write('err_Boutsidis : ')
-            # f.write(str(err_Boutsidis))
-            # f.write('\n')
-            f.write('err_leverage_scores : ')
-            f.write(str(err_leverage_scores))
+            f.write('err_Boutsidis : ')
+            f.write(str(err_Boutsidis))
             f.write('\n')
             f.write('err_uniform : ')
             f.write(str(err_uniform))
             f.write('\n')
     #
-    plt.plot(s, err_massart, label = r'$L_1$ Orthogonal Regularization (LOR)')
-    plt.plot(s, err_massart_smart, label = r'$L_1$OR with PCA starint point')
-    plt.plot(s, err_mathur, label = 'Stochatic Landmark Selection')
-    plt.plot(s, err_mathur_not_stoch, label = 'Landmark Selection')
+    plt.plot(s, err_L_1O, label = r'$L_1$ Orthogonal Regularization (LOR)')
+    plt.plot(s, err_L_1O_smart, label = r'$L_1$OR with PCA starint point')
+    plt.plot(s, err_SLS, label = 'Stochatic Landmark Selection')
+    plt.plot(s, err_SLS_not_stoch, label = 'Landmark Selection')
     # plt.plot(s, err_Boutsidis, label = 'Boutsidis')
     plt.plot(s, err_leverage_scores, label = 'Leverage Scores')
     plt.plot(s, err_uniform, label = 'Uniform Sampling')
@@ -730,27 +396,28 @@ def massart_mathur_comparison(n1 = 20, n2 = 50, s = 10, itermax = 12, n_test = 1
     plt.legend()
     plt.grid()
     if save:
-        plt.savefig('results/massart_mathur_comparison'+filename+'.svg')
+        plt.savefig('results/L_1O_SLS_comparison'+filename+'.svg')
     else:
         plt.show()
 
 
-def massart_mathur_comparison_MNIST(X, itermax = 12, n_test = 10, save = False, filename = '_MNIST_'):
+def L_1O_SLS_comparison_MNIST(X, itermax = 12, n_test = 10, save = False, filename = '_MNIST_'):
     n1, n2 = np.shape(X)
-    ld_mathur_stoch = 1e1
-    step_mathur_stoch = 1e-3
-    # ld_mathur_not_stoch = 1e1
-    # step_mathur_not_stoch = 1e-4
-    ld_massart = 0.1 #ok
-    step_massart = 0.001 #ok
+    ld_SLS_stoch = 1e1
+    step_SLS_stoch = 1e-3
+    # ld_SLS_not_stoch = 1e1
+    # step_SLS_not_stoch = 1e-4
+    ld_L_1O = 0.1 #ok
+    step_L_1O = 0.001 #ok
     tol = 1e-3
     s = np.linspace(n1*0.05,n1*0.7,11)
-    err_mathur = np.zeros(len(s))
-    err_massart_smart = np.zeros(len(s))
-    err_massart = np.zeros(len(s)) 
+    err_SLS = np.zeros(len(s))
+    err_L_1O_smart = np.zeros(len(s))
+    err_L_1O = np.zeros(len(s)) 
     err_leverage_scores = np.zeros(len(s))
-    err_mathur_not_stoch = np.zeros(len(s))
+    err_SLS_not_stoch = np.zeros(len(s))
     err_uniform = np.zeros(len(s))
+    err_Boutsidis = np.zeros(len(s))
     n_test_fast = 20
     svd_error = np.zeros(n_test)
     for (i,s_) in zip(range(len(s)),s):
@@ -764,35 +431,34 @@ def massart_mathur_comparison_MNIST(X, itermax = 12, n_test = 10, save = False, 
             svd_error[j] = CSSP_approximation_svd(X, n1, n2, s_)[1]
             # print('time taken by the svd : ', time.time() - timer)
             # timer = time.time()
-            (indexes, m, n) = massart( X, n1, n2, s_, ld_massart, step_massart, itermax, display=False, tol = tol)
-            err_massart[i] += m/svd_error[j]
-            # print('time taken by massart : ', time.time() - timer)
+            (indexes, m, n) = L_1O( X, n1, n2, s_, ld_L_1O, step_L_1O, itermax, display=False, tol = tol)
+            err_L_1O[i] += m/svd_error[j]
+            # print('time taken by L_1O : ', time.time() - timer)
             # timer = time.time()
-            # (indexes, m, n) = massart( X, n1, n2, s_, ld_massart_smart, step_massart_smart, itermax, display=False, tol = tol, smart_start=True)
-            # err_massart_smart[i] += m/svd_error[j]
-            # print('time taken by massart smart : ', time.time() - timer)
+            # (indexes, m, n) = L_1O( X, n1, n2, s_, ld_L_1O_smart, step_L_1O_smart, itermax, display=False, tol = tol, smart_start=True)
+            # err_L_1O_smart[i] += m/svd_error[j]
+            # print('time taken by L_1O smart : ', time.time() - timer)
             # timer = time.time()
-            (indexes, m, n, t) = mathur( X, n1, n2, s_, ld_mathur_stoch, step_mathur_stoch, itermax, display=False, tol = tol, stochastic = True)
-            err_mathur[i] += m/svd_error[j]
-            # print('time taken by mathur stoch : ', time.time() - timer)
+            (indexes, m, n, t) = SLS( X, n1, n2, s_, ld_SLS_stoch, step_SLS_stoch, itermax, display=False, tol = tol, stochastic = True)
+            err_SLS[i] += m/svd_error[j]
+            # print('time taken by SLS stoch : ', time.time() - timer)
             # timer = time.time()
-            # (indexes, m, n, t) = mathur( X, n1, n2, s_, ld_mathur_not_stoch, step_mathur_not_stoch, itermax, display=False, tol = tol, stochastic = True)
-            # err_mathur_not_stoch[i] += m/svd_error[j]
-            # print('time taken by mathur not stoch : ', time.time() - timer)
+            # (indexes, m, n, t) = SLS( X, n1, n2, s_, ld_SLS_not_stoch, step_SLS_not_stoch, itermax, display=False, tol = tol, stochastic = True)
+            # err_SLS_not_stoch[i] += m/svd_error[j]
+            # print('time taken by SLS not stoch : ', time.time() - timer)
             # timer = time.time()
-            # C_Boutsidis = Boutsidis_Mahoney_Drineas(X, s_, c = 1)
+            (C_Boutsidis, m) = Boutsidis_Mahoney_Drineas(X, s_, c = 1)
+            err_Boutsidis[i] += m/svd_error[j]
             # print('Boutsidis done')
             # err_Boutsidis[i] += Approximation_factor(X, s_, C_Boutsidis)
             # timer = time.time()
-            (C_leverage_scores, m) = Leverage_scores(X, s_, c = 2)
-            err_leverage_scores[i] += Approximation_factor_C(X, s_, C_leverage_scores)
             (C_uniform, m) = Uniform_sampling(X, s_)
             err_uniform[i] += m/svd_error[j]
             # print('time taken by leverage scores : ', time.time() - timer)
         # print(f"Time taken for this configuration : {time.time() - timer_big} seconds")
-    err_massart /= n_test
-    err_massart_smart /= n_test
-    err_mathur /= n_test
+    err_L_1O /= n_test
+    err_L_1O_smart /= n_test
+    err_SLS /= n_test
     # err_Boutsidis /= n_test_fast
     err_leverage_scores /= n_test
     err_uniform /= n_test
@@ -804,59 +470,34 @@ def massart_mathur_comparison_MNIST(X, itermax = 12, n_test = 10, save = False, 
             f.write('s : ')
             f.write(str(s))
             f.write('\n')
-            f.write('err_massart : ')
-            f.write(str(err_massart))
+            f.write('err_L_1O : ')
+            f.write(str(err_L_1O))
             f.write('\n')
-            f.write('err_massart_smart : ')
-            f.write(str(err_massart_smart))
+            f.write('err_SLS : ')
+            f.write(str(err_SLS))
             f.write('\n')
-            f.write('err_mathur : ')
-            f.write(str(err_mathur))
-            f.write('\n')
-            f.write('err_mathur_not_stoch : ')
-            f.write(str(err_mathur_not_stoch))
-            f.write('\n')
-            # f.write('err_Boutsidis : ')
-            # f.write(str(err_Boutsidis))
-            # f.write('\n')
-            f.write('err_leverage_scores : ')
-            f.write(str(err_leverage_scores))
+            f.write('err_Boutsidis : ')
+            f.write(str(err_Boutsidis))
             f.write('\n')
             f.write('err_uniform : ')
             f.write(str(err_uniform))
             f.write('\n')
-    #
-    plt.plot(s, err_massart, label = r'$L_1$ Orthogonal Regularization (LOR)')
-    plt.plot(s, err_massart_smart, label = '$LOR with PCA starint point')
-    plt.plot(s, err_mathur, label = 'Stochatic Landmark Selection')
-    plt.plot(s, err_mathur_not_stoch, label = 'Landmark Selection')
-    # plt.plot(s, err_Boutsidis, label = 'Boutsidis')
-    plt.plot(s, err_leverage_scores, label = 'Leverage Scores')
-    plt.plot(s, err_uniform, label = 'Uniform Sampling')
-    # plt.title('Comparison of the different methods')
-    plt.xlabel('n/s %')
-    plt.ylabel('Approximation Factor')
-    plt.legend()
-    plt.grid()
-    if save:
-        plt.savefig('results/massart_mathur_comparison_'+filename+'.svg')
-    else:
-        plt.show()
-def massart_mathur_comparison_arrithmia(X, itermax = 12, n_test = 10, save = False, filename = '_arrithmia_'):
+    return None
+
+
+def L_1O_SLS_comparison_arrithmia(X, itermax = 12, n_test = 10, save = False, filename = '_arrithmia_'):
     n1, n2 = np.shape(X)
-    # ld_mathur_stoch = 1e-5
-    # step_mathur_stoch = 1e-1
-    ld_mathur_stoch = 0.01
-    step_mathur_stoch =  0.001
-    ld_massart = 1 #ok
-    step_massart = 0.001 #ok
+    # ld_SLS_stoch = 1e-5
+    # step_SLS_stoch = 1e-1
+    ld_SLS_stoch = 0.01
+    step_SLS_stoch =  0.001
+    ld_L_1O = 1 #ok
+    step_L_1O = 0.001 #ok
     tol = 1e-3
     s = np.linspace(n1*0.05,n1*0.7,11)
-    err_mathur = np.zeros(len(s))
-    err_massart_smart = np.zeros(len(s))
-    err_massart = np.zeros(len(s)) 
-    err_leverage_scores = np.zeros(len(s))
-    err_mathur_not_stoch = np.zeros(len(s))
+    err_SLS = np.zeros(len(s))
+    err_L_1O = np.zeros(len(s)) 
+    err_Boutsidis = np.zeros(len(s))
     err_uniform = np.zeros(len(s))
     n_test_fast = 20
     svd_error = np.zeros(n_test)
@@ -871,35 +512,21 @@ def massart_mathur_comparison_arrithmia(X, itermax = 12, n_test = 10, save = Fal
             svd_error[j] = CSSP_approximation_svd(X, n1, n2, s_)[1]
             # print('time taken by the svd : ', time.time() - timer)
             # timer = time.time()
-            (indexes, m, n) = massart( X, n1, n2, s_, ld_massart, step_massart, itermax, display=False, tol = tol)
-            err_massart[i] += m/svd_error[j]
-            # print('time taken by massart : ', time.time() - timer)
-            # timer = time.time()
-            # (indexes, m, n) = massart( X, n1, n2, s_, ld_massart_smart, step_massart_smart, itermax, display=False, tol = tol, smart_start=True)
-            # err_massart_smart[i] += m/svd_error[j]
-            # print('time taken by massart smart : ', time.time() - timer)
-            # timer = time.time()
-            (indexes, m, n, t) = mathur( X, n1, n2, s_, ld_mathur_stoch, step_mathur_stoch, itermax, display=False, tol = tol, stochastic = True)
-            err_mathur[i] += m/svd_error[j]
-            # print('time taken by mathur stoch : ', time.time() - timer)
-            # timer = time.time()
-            # (indexes, m, n, t) = mathur( X, n1, n2, s_, ld_mathur_not_stoch, step_mathur_not_stoch, itermax, display=False, tol = tol, stochastic = True)
-            # err_mathur_not_stoch[i] += m/svd_error[j]
-            # print('time taken by mathur not stoch : ', time.time() - timer)
-            # timer = time.time()
-            # C_Boutsidis = Boutsidis_Mahoney_Drineas(X, s_, c = 1)
+            (indexes, m, n) = L_1O( X, n1, n2, s_, ld_L_1O, step_L_1O, itermax, display=False, tol = tol)
+            err_L_1O[i] += m/svd_error[j]
+            (indexes, m, n, t) = SLS( X, n1, n2, s_, ld_SLS_stoch, step_SLS_stoch, itermax, display=False, tol = tol, stochastic = True)
+            err_SLS[i] += m/svd_error[j]
+            (C_Boutsidis,m) = Boutsidis_Mahoney_Drineas(X, s_, c = 1)
             # print('Boutsidis done')
-            # err_Boutsidis[i] += Approximation_factor(X, s_, C_Boutsidis)
+            err_Boutsidis[i] += m
             # timer = time.time()
-            (C_leverage_scores, m) = Leverage_scores(X, s_, c = 2)
-            err_leverage_scores[i] += Approximation_factor_C(X, s_, C_leverage_scores)
             (C_uniform, m) = Uniform_sampling(X, s_)
-            err_uniform[i] += Approximation_factor_C(X, s_, C_uniform)
+            err_uniform[i] += m/svd_error[j]
             # print('time taken by leverage scores : ', time.time() - timer)
         print(f"Time taken for this configuration : {time.time() - timer_big} seconds")
-    err_massart /= n_test
-    err_massart_smart /= n_test
-    err_mathur /= n_test
+    err_L_1O /= n_test
+    err_L_1O_smart /= n_test
+    err_SLS /= n_test
     # err_Boutsidis /= n_test_fast
     err_leverage_scores /= n_test
     err_uniform /= n_test
@@ -911,44 +538,19 @@ def massart_mathur_comparison_arrithmia(X, itermax = 12, n_test = 10, save = Fal
             f.write('s : ')
             f.write(np.array2string(s, max_line_width=np.inf))
             f.write('\n')
-            f.write('err_massart : ')
-            f.write(np.array2string(err_massart, max_line_width=np.inf))
+            f.write('err_L_1O : ')
+            f.write(np.array2string(err_L_1O, max_line_width=np.inf))
             f.write('\n')
-            f.write('err_massart_smart : ')
-            f.write(np.array2string(err_massart_smart, max_line_width=np.inf))
-            f.write('\n')
-            f.write('err_mathur : ')
-            f.write(np.array2string(err_mathur, max_line_width=np.inf))
-            f.write('\n')
-            f.write('err_mathur_not_stoch : ')
-            f.write(np.array2string(err_mathur_not_stoch, max_line_width=np.inf))
-            f.write('\n')
-            f.write('err_leverage_scores : ')
-            f.write(np.array2string(err_leverage_scores, max_line_width=np.inf))
+            f.write('err_SLS : ')
+            f.write(np.array2string(err_SLS, max_line_width=np.inf))
             f.write('\n')
             f.write('err_uniform : ')
             f.write(np.array2string(err_uniform, max_line_width=np.inf))
             f.write('\n')
-            # f.write('err_Boutsidis : ')
-            # f.write(np.array2string(err_Boutsidis, max_line_width=np.inf))
-            # f.write('\n')
-    #
-    plt.plot(s, err_massart, label = r'$L_1$ Orthogonal Regularization (LOR)')
-    plt.plot(s, err_massart_smart, label = '$LOR with PCA starint point')
-    plt.plot(s, err_mathur, label = 'Stochatic Landmark Selection')
-    plt.plot(s, err_mathur_not_stoch, label = 'Landmark Selection')
-    # plt.plot(s, err_Boutsidis, label = 'Boutsidis')
-    plt.plot(s, err_leverage_scores, label = 'Leverage Scores')
-    plt.plot(s, err_uniform, label = 'Uniform Sampling')
-    # plt.title('Comparison of the different methods')
-    plt.xlabel('n/s %')
-    plt.ylabel('Approximation Factor')
-    plt.legend()
-    plt.grid()
-    if save:
-        plt.savefig('results/massart_mathur_comparison_'+filename+'.svg')
-    else:
-        plt.show()
+            f.write('err_Boutsidis : ')
+            f.write(np.array2string(err_Boutsidis, max_line_width=np.inf))
+            f.write('\n')
+    return None
 
 def test_comparison_plot(filename1 = '_', uniform = True, save = False, random = False):
     # read the file comparison_perf_MNIST_mat.txt
@@ -956,19 +558,18 @@ def test_comparison_plot(filename1 = '_', uniform = True, save = False, random =
         lines = f.readlines()
         print(lines)
         s = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
-        err_massart = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
-        # err_massart_smart = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
-        err_mathur = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
-        # err_mathur_not_stoch = np.array(lines[4].split('[')[1].split(']')[0].split()).astype(float)
-        err_leverage_scores = np.array(lines[5].split('[')[1].split(']')[0].split()).astype(float)
-        err_uniform = np.array(lines[6].split('[')[1].split(']')[0].split()).astype(float)
-        err_boutsidis = np.array(lines[7].split('[')[1].split(']')[0].split()).astype(float)
+        err_L_1O = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
+        # err_L_1O_smart = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
+        err_SLS = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
+        # err_SLS_not_stoch = np.array(lines[4].split('[')[1].split(']')[0].split()).astype(float)
+        err_uniform = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
+        err_boutsidis = np.array(lines[4].split('[')[1].split(']')[0].split()).astype(float)
     
     plt.figure(figsize=(10, 3))
-    plt.plot(s, err_massart, label = r'$L_1$ Orthogonal Regularization (LOR)', color = 'blue')
-    # plt.plot(s, err_massart_smart, label = r'$L_1$OR with PCA starint point')
-    plt.plot(s, err_mathur, label = 'Stochatic Landmark Selection (SLS)', color = 'green')
-    # plt.plot(s, err_mathur_not_stoch, label = 'Landmark Selection')
+    plt.plot(s, err_L_1O, label = r'$L_1$ Orthogonal Regularization (LOR)', color = 'blue')
+    # plt.plot(s, err_L_1O_smart, label = r'$L_1$OR with PCA starint point')
+    plt.plot(s, err_SLS, label = 'Stochatic Landmark Selection (SLS)', color = 'green')
+    # plt.plot(s, err_SLS_not_stoch, label = 'Landmark Selection')
     plt.plot(s, err_boutsidis, label = 'Double-Phase Algorithm', color = 'red')
     # plt.plot(s, err_leverage_scores, label = 'Leverage Scores')
     if uniform:
@@ -986,20 +587,20 @@ def test_comparison_plot(filename1 = '_', uniform = True, save = False, random =
     else:
         plt.show()
 
-def massart_real_perf(X, itermax = 1000, save = False, filename = '_', tol = 1e-3):
-    ld_massart_smart = 1e-3
-    step_massart_smart = 1e-1
-    ld_massart = 1e-3
-    step_massart = 1e-1
+def L_1O_real_perf(X, itermax = 1000, save = False, filename = '_', tol = 1e-3):
+    ld_L_1O_smart = 1e-3
+    step_L_1O_smart = 1e-1
+    ld_L_1O = 1e-3
+    step_L_1O = 1e-1
     (n1, n2) = np.shape(X)
     s = np.round(np.linspace(0,n2*0.7,11))
     print('s : ', s)
-    err_massart_smart = np.zeros(len(s))
-    err_massart = np.zeros(len(s)) 
+    err_L_1O_smart = np.zeros(len(s))
+    err_L_1O = np.zeros(len(s)) 
     for (i,s_) in zip(range(len(s)),s):
             if s_==0:
-                err_massart[i] = 1
-                err_massart_smart[i] = 1
+                err_L_1O[i] = 1
+                err_L_1O_smart[i] = 1
                 continue
             s_ = int(s_)
             print(('s : ', s_))
@@ -1008,29 +609,29 @@ def massart_real_perf(X, itermax = 1000, save = False, filename = '_', tol = 1e-
             # error_C_svd = function_objectif_C(X, C_svd)
             timer = time.time()
             print('s : ', s_)
-            (indexes, error, n) = massart( X, n1, n2, s_, ld_massart, step_massart, itermax, display=True, tol = tol)
-            err_massart[i] = error/error_C_svd
+            (indexes, error, n) = L_1O( X, n1, n2, s_, ld_L_1O, step_L_1O, itermax, display=True, tol = tol)
+            err_L_1O[i] = error/error_C_svd
             print('first method done')
-            (indexes, error, n) = massart( X, n1, n2, s_, ld_massart_smart, step_massart_smart, itermax, display=True, tol = tol, smart_start=True)
-            err_massart_smart[i] = error/error_C_svd
+            (indexes, error, n) = L_1O( X, n1, n2, s_, ld_L_1O_smart, step_L_1O_smart, itermax, display=True, tol = tol, smart_start=True)
+            err_L_1O_smart[i] = error/error_C_svd
             print('second method done')
             print(f"Time taken for this configuration : {time.time() - timer} seconds")
-            print('err_massart : ', err_massart)
-            print('err_massart_smart : ', err_massart_smart)
+            print('err_L_1O : ', err_L_1O)
+            print('err_L_1O_smart : ', err_L_1O_smart)
     s = (s/np.max(s))*100
     #save the results in a text file 
     if save:
         pass
-    print('err_massart : ', err_massart)
-    print('err_massart_smart : ', err_massart_smart)
-    plt.plot(s, err_massart, label = 'Massart')
-    plt.plot(s, err_massart_smart, label = 'Massart Smart')
+    print('err_L_1O : ', err_L_1O)
+    print('err_L_1O_smart : ', err_L_1O_smart)
+    plt.plot(s, err_L_1O, label = 'L_1O')
+    plt.plot(s, err_L_1O_smart, label = 'L_1O Smart')
     plt.xlabel('n/s %')
     plt.ylabel('Approximation factor')
     plt.legend()
     plt.grid()
     if save:
-        plt.savefig('results/massart_mnist_perf'+filename+'.svg')
+        plt.savefig('results/L_1O_mnist_perf'+filename+'.svg')
     else:
         plt.show()
 
@@ -1059,49 +660,49 @@ def test_Uniform_Sampling(images_std, s=100):
     plt.show()
     return None
 
-def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'Massart', itermax = 2000, n_test = 10, save = False):
+def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'L_1O', itermax = 2000, n_test = 10, save = False):
     
 #     """
-#     Test the speed of the massart and mathur algorithms
+#     Test the speed of the L_1O and SLS algorithms
 #     """
 #     # We vary n
 #     n_arr = np.arange(20, 55 , 5)
 #     m_arr = np.arange(15, 50 , 5)
 #     s_arr = np.arange(5, 19, 2)
-#     time_n_massart = []
-#     time_m_massart = []
-#     time_s_massart = []
-#     time_n_iter_massart = []
-#     time_m_iter_massart = []
-#     time_s_iter_massart = []
-#     time_n_mathur = []
-#     time_m_mathur = []
-#     time_s_mathur = []
-#     time_n_iter_mathur = []
-#     time_m_iter_mathur = []
-#     time_s_iter_mathur = []
+#     time_n_L_1O = []
+#     time_m_L_1O = []
+#     time_s_L_1O = []
+#     time_n_iter_L_1O = []
+#     time_m_iter_L_1O = []
+#     time_s_iter_L_1O = []
+#     time_n_SLS = []
+#     time_m_SLS = []
+#     time_s_SLS = []
+#     time_n_iter_SLS = []
+#     time_m_iter_SLS = []
+#     time_s_iter_SLS = []
 #     for n_ in n_arr:
-#         t_buf_massart = 0.0
-#         time_n_iter_massart = 0.0
-#         t_buf_mathur = 0.0
-#         time_n_iter_mathur = 0.0
+#         t_buf_L_1O = 0.0
+#         time_n_iter_L_1O = 0.0
+#         t_buf_SLS = 0.0
+#         time_n_iter_SLS = 0.0
 #         ft.create_matrix_file(n_test, n_, m)
 #         for i in range(n_test):
 #             X = ft.matrix_from_file(i, n_, m)
 #             start_time = time.time()
-#             (indexes, value, niter, t) = mathur( X, n_, m, s, ld, step, itermax, display=True, tol = 1e-5, stochastic = False)
+#             (indexes, value, niter, t) = SLS( X, n_, m, s, ld, step, itermax, display=True, tol = 1e-5, stochastic = False)
 #             t = time.time() - start_time
-#             t_buf_mathur += t
-#             time_m_iter_mathur += t/niter
-#             if method == 'Mathur_Stochastic':
+#             t_buf_SLS += t
+#             time_m_iter_SLS += t/niter
+#             if method == 'SLS_Stochastic':
 #                 start_time = time.time()
-#                 (indexes, value, niter, t) = mathur( X, n_, m, s, ld, step, itermax, display=False, tol = 1e-5, stochastic = True)
+#                 (indexes, value, niter, t) = SLS( X, n_, m, s, ld, step, itermax, display=False, tol = 1e-5, stochastic = True)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
-#             if method == 'Massart':
+#             if method == 'L_1O':
 #                 start_time = time.time()
-#                 (indexes, value, niter) = massart( X, n_, m, s, ld, step, itermax, display=False, tol = 1e-5, smart_start=True)
+#                 (indexes, value, niter) = L_1O( X, n_, m, s, ld, step, itermax, display=False, tol = 1e-5, smart_start=True)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
@@ -1114,21 +715,21 @@ def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'Massart', i
 #         ft.create_matrix_file(n_test, n, m_)
 #         for i in range(n_test):
 #             X = ft.matrix_from_file(i, n, m_)
-#             if method == 'Mathur':
+#             if method == 'SLS':
 #                 start_time = time.time()
-#                 (indexes, value, niter, t) = mathur( X, n, m_, s, ld, step, itermax, display=False, tol = 1e-5, stochastic = False)
+#                 (indexes, value, niter, t) = SLS( X, n, m_, s, ld, step, itermax, display=False, tol = 1e-5, stochastic = False)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
-#             if method == 'Mathur_Stochastic':
+#             if method == 'SLS_Stochastic':
 #                 start_time = time.time()
-#                 (indexes, value, niter, t) = mathur( X, n, m_, s, ld, step, itermax, display=False, tol = 1e-5, stochastic = True)
+#                 (indexes, value, niter, t) = SLS( X, n, m_, s, ld, step, itermax, display=False, tol = 1e-5, stochastic = True)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
-#             if method == 'Massart':
+#             if method == 'L_1O':
 #                 start_time = time.time()
-#                 (indexes, value, niter) = massart( X, n, m_, s, ld, step, itermax, display=False, tol = 1e-5)
+#                 (indexes, value, niter) = L_1O( X, n, m_, s, ld, step, itermax, display=False, tol = 1e-5)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
@@ -1141,21 +742,21 @@ def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'Massart', i
 #         ft.create_matrix_file(n_test, n, m)
 #         for i in range(n_test):
 #             X = ft.matrix_from_file(i, n, m)
-#             if method == 'Mathur':
+#             if method == 'SLS':
 #                 start_time = time.time()
-#                 (indexes, value, niter, t) = mathur( X, n, m, s_, ld, step, itermax, display=False, tol = 1e-5, stochastic = False)
+#                 (indexes, value, niter, t) = SLS( X, n, m, s_, ld, step, itermax, display=False, tol = 1e-5, stochastic = False)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
-#             if method == 'Mathur_Stochastic':
+#             if method == 'SLS_Stochastic':
 #                 start_time = time.time()
-#                 (indexes, value, niter, t) = mathur( X, n, m, s_, ld, step, itermax, display=False, tol = 1e-5, stochastic = True)
+#                 (indexes, value, niter, t) = SLS( X, n, m, s_, ld, step, itermax, display=False, tol = 1e-5, stochastic = True)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
-#             if method == 'Massart':
+#             if method == 'L_1O':
 #                 start_time = time.time()
-#                 (indexes, value, niter) = massart( X, n, m, s_, ld, step, itermax, display=False, tol = 1e-5)
+#                 (indexes, value, niter) = L_1O( X, n, m, s_, ld, step, itermax, display=False, tol = 1e-5)
 #                 t = time.time() - start_time
 #                 t_buf += t
 #                 time_iter += t/niter
@@ -1184,12 +785,12 @@ def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'Massart', i
 
 #     plt.tight_layout()
 #     if save:
-#         if method == 'Mathur':
-#             plt.savefig('results/speed_mathur.svg')
-#         if method == 'Mathur_Stochastic':
-#             plt.savefig('results/speed_mathur_stochastic.svg')
-#         if method == 'Massart':
-#             plt.savefig('results/speed_massart.svg')
+#         if method == 'SLS':
+#             plt.savefig('results/speed_SLS.svg')
+#         if method == 'SLS_Stochastic':
+#             plt.savefig('results/speed_SLS_stochastic.svg')
+#         if method == 'L_1O':
+#             plt.savefig('results/speed_L_1O.svg')
 #         if method == 'Both':
 #             plt.savefig('results/speed_both.svg')
 #     else:
@@ -1218,12 +819,12 @@ def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'Massart', i
 
 #     plt.tight_layout()
 #     if save:
-#         if method == 'Mathur':
-#             plt.savefig('results/speed_mathur_iter.svg')
-#         if method == 'Mathur_Stochastic':
-#             plt.savefig('results/speed_mathur_stochastic_iter.svg')
-#         if method == 'Massart':
-#             plt.savefig('results/speed_massart_iter.svg')
+#         if method == 'SLS':
+#             plt.savefig('results/speed_SLS_iter.svg')
+#         if method == 'SLS_Stochastic':
+#             plt.savefig('results/speed_SLS_stochastic_iter.svg')
+#         if method == 'L_1O':
+#             plt.savefig('results/speed_L_1O_iter.svg')
 #         if method == 'Both'
 #             plt.savefig('results/speed_both_iter.svg')
 #     else:
@@ -1233,14 +834,14 @@ def test_speed_same_plot(ld, step, n = 50, m = 20, s = 10, method = 'Massart', i
 
 def test_speed(X, itermax = 2000, n_test = 10, save = False):
     """
-    Test the speed of the massart and mathur algorithms
+    Test the speed of the L_1O and SLS algorithms
     """
-    # ld_mathur_stoch = 1e1
-    # step_mathur_stoch = 1e-4
-    ld_mathur = 1e1
-    step_mathur = 1e-4
-    ld_massart = 0.1 #ok
-    step_massart = 0.01 #ok
+    # ld_SLS_stoch = 1e1
+    # step_SLS_stoch = 1e-4
+    ld_SLS = 1e1
+    step_SLS = 1e-4
+    ld_L_1O = 0.1 #ok
+    step_L_1O = 0.01 #ok
     # We vary n
     (m, n) = np.shape(X)
     print('m : ', m, 'n : ', n)
@@ -1251,114 +852,114 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
     # print('m_arr : ', m_arr)
     # print('n_arr : ', n_arr)
     # print('s_arr : ', s_arr)
-    time_n_massart = []
-    time_m_massart = []
-    time_s_massart = []
-    time_n_iter_massart = []
-    time_m_iter_massart = []
-    time_s_iter_massart = []
-    time_n_mathur = []
-    time_m_mathur = []
-    time_s_mathur = []
-    time_n_iter_mathur = []
-    time_m_iter_mathur = []
-    time_s_iter_mathur = []
+    time_n_L_1O = []
+    time_m_L_1O = []
+    time_s_L_1O = []
+    time_n_iter_L_1O = []
+    time_m_iter_L_1O = []
+    time_s_iter_L_1O = []
+    time_n_SLS = []
+    time_m_SLS = []
+    time_s_SLS = []
+    time_n_iter_SLS = []
+    time_m_iter_SLS = []
+    time_s_iter_SLS = []
     time_n_leverage = []
     time_m_leverage = []
     time_s_leverage = []
     for m_ in m_arr:
-        t_buf_massart = 0.0
-        time_iter_massart = 0.0
-        t_buf_mathur = 0.0
-        time_iter_mathur = 0.0
+        t_buf_L_1O = 0.0
+        time_iter_L_1O = 0.0
+        t_buf_SLS = 0.0
+        time_iter_SLS = 0.0
         t_buf_leverage = 0.0
         # ft.create_matrix_file(n_test, n_, m)
         for i in range(n_test):
             # X = ft.matrix_from_file(i, n_, m)
             start_time = time.time()
-            (indexes, value, niter, t) = mathur( X[:m_,:n], m_, n, s, ld_mathur, step_mathur, itermax, display=False, tol = 1e-3, stochastic = False)
+            (indexes, value, niter, t) = SLS( X[:m_,:n], m_, n, s, ld_SLS, step_SLS, itermax, display=False, tol = 1e-3, stochastic = False)
             t = time.time() - start_time
-            t_buf_mathur += t
-            time_iter_mathur += t/niter
+            t_buf_SLS += t
+            time_iter_SLS += t/niter
             start_time = time.time()
-            (indexes, value, niter) = massart( X[:m_,:n], m_, n, s, ld_massart, step_massart, itermax, display=False, tol = 1e-3, smart_start=False)
+            (indexes, value, niter) = L_1O( X[:m_,:n], m_, n, s, ld_L_1O, step_L_1O, itermax, display=False, tol = 1e-3, smart_start=False)
             t = time.time() - start_time
-            t_buf_massart += t
-            time_iter_massart += t/niter
+            t_buf_L_1O += t
+            time_iter_L_1O += t/niter
             start_time = time.time()
             (C_leverage_scores, by) = Leverage_scores(X[:m_,:n], s, c = 2)
             t = time.time() - start_time
             t_buf_leverage += t
-        time_m_massart.append(t_buf_massart / n_test)
-        time_m_iter_massart.append(time_iter_massart / n_test)
-        time_m_mathur.append(t_buf_mathur / n_test)
-        time_m_iter_mathur.append(time_iter_mathur / n_test)
+        time_m_L_1O.append(t_buf_L_1O / n_test)
+        time_m_iter_L_1O.append(time_iter_L_1O / n_test)
+        time_m_SLS.append(t_buf_SLS / n_test)
+        time_m_iter_SLS.append(time_iter_SLS / n_test)
         time_m_leverage.append(t_buf_leverage / n_test)
 
     print('variation m done')
     for n_ in n_arr:
-        t_buf_massart = 0
-        time_iter_massart = 0
-        t_buf_mathur = 0
-        time_iter_mathur = 0
+        t_buf_L_1O = 0
+        time_iter_L_1O = 0
+        t_buf_SLS = 0
+        time_iter_SLS = 0
         t_buf_leverage = 0
         # ft.create_matrix_file(n_test, n, m_)
         for i in range(n_test):
             # X = ft.matrix_from_file(i, n, m_)
             start_time = time.time()
-            (indexes, value, niter, t) = mathur( X[:m,:n_], m, n_, s, ld_mathur, step_mathur, itermax, display=False, tol = 1e-3, stochastic = False)
+            (indexes, value, niter, t) = SLS( X[:m,:n_], m, n_, s, ld_SLS, step_SLS, itermax, display=False, tol = 1e-3, stochastic = False)
             t = time.time() - start_time
-            t_buf_mathur += t
-            time_iter_mathur += t/niter
+            t_buf_SLS += t
+            time_iter_SLS += t/niter
             start_time = time.time()
-            (indexes, value, niter) = massart( X[:m,:n_], m, n_, s, ld_massart, step_massart, itermax, display=False, tol = 1e-3, smart_start=False)
+            (indexes, value, niter) = L_1O( X[:m,:n_], m, n_, s, ld_L_1O, step_L_1O, itermax, display=False, tol = 1e-3, smart_start=False)
             t = time.time() - start_time
-            t_buf_massart += t
-            time_iter_massart += t/niter
+            t_buf_L_1O += t
+            time_iter_L_1O += t/niter
             start_time = time.time()
             (C_leverage_scores, by) = Leverage_scores(X[:m,:n_], s, c = 2)
             t = time.time() - start_time
             t_buf_leverage += t
-        time_n_massart.append(t_buf_massart / n_test)
-        time_n_iter_massart.append(time_iter_massart / n_test)
-        time_n_mathur.append(t_buf_mathur / n_test)
-        time_n_iter_mathur.append(time_iter_mathur / n_test)
+        time_n_L_1O.append(t_buf_L_1O / n_test)
+        time_n_iter_L_1O.append(time_iter_L_1O / n_test)
+        time_n_SLS.append(t_buf_SLS / n_test)
+        time_n_iter_SLS.append(time_iter_SLS / n_test)
         time_n_leverage.append(t_buf_leverage / n_test)
     print('variation n done')
     for s_ in s_arr:
-        t_buf_massart = 0
-        time_iter_massart = 0
-        t_buf_mathur = 0
-        time_iter_mathur = 0
+        t_buf_L_1O = 0
+        time_iter_L_1O = 0
+        t_buf_SLS = 0
+        time_iter_SLS = 0
         t_buf_leverage = 0
         # ft.create_matrix_file(n_test, n, m)
         for i in range(n_test):
             # X = ft.matrix_from_file(i, n, m)
             start_time = time.time()
-            (indexes, value, niter, t) = mathur( X, m, n, s_, ld_mathur, step_mathur, itermax, display=False, tol = 1e-3, stochastic = False)
+            (indexes, value, niter, t) = SLS( X, m, n, s_, ld_SLS, step_SLS, itermax, display=False, tol = 1e-3, stochastic = False)
             t = time.time() - start_time
-            t_buf_mathur += t
-            time_iter_mathur += t/niter
+            t_buf_SLS += t
+            time_iter_SLS += t/niter
             start_time = time.time()
-            (indexes, value, niter) = massart( X, m, n, s_, ld_massart, step_massart, itermax, display=False, tol = 1e-3, smart_start=False)
+            (indexes, value, niter) = L_1O( X, m, n, s_, ld_L_1O, step_L_1O, itermax, display=False, tol = 1e-3, smart_start=False)
             t = time.time() - start_time
-            t_buf_massart += t
-            time_iter_massart += t/niter
+            t_buf_L_1O += t
+            time_iter_L_1O += t/niter
             start_time = time.time()
             (C_leverage_scores, by) = Leverage_scores(X, s_, c = 2)
             t = time.time() - start_time
             t_buf_leverage += t
-        time_s_massart.append(t_buf_massart / n_test)
-        time_s_iter_massart.append(time_iter_massart / n_test)
-        time_s_mathur.append(t_buf_mathur / n_test)
-        time_s_iter_mathur.append(time_iter_mathur / n_test)
+        time_s_L_1O.append(t_buf_L_1O / n_test)
+        time_s_iter_L_1O.append(time_iter_L_1O / n_test)
+        time_s_SLS.append(t_buf_SLS / n_test)
+        time_s_iter_SLS.append(time_iter_SLS / n_test)
         time_s_leverage.append(t_buf_leverage / n_test)
 
     print('variation s done')
     fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharex=False, sharey=True)
     fig.suptitle('Execution Time Comparison', fontsize=16)
-    axs[0].plot(m_arr, time_m_massart, label = r'$L_1$ Orthogonal Regularization')
-    axs[0].plot(m_arr, time_m_mathur, label = 'Landmark Selection')
+    axs[0].plot(m_arr, time_m_L_1O, label = r'$L_1$ Orthogonal Regularization')
+    axs[0].plot(m_arr, time_m_SLS, label = 'Landmark Selection')
     axs[0].plot(m_arr, time_m_leverage, label = 'Leverage Scores')
     #add legend
     axs[0].legend()
@@ -1368,8 +969,8 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
     axs[0].label_outer()
     
 
-    axs[1].plot(n_arr, time_n_massart, label = r'$L_1$ Orthogonal Regularization')  
-    axs[1].plot(n_arr, time_n_mathur, label = 'Landmark Selection')
+    axs[1].plot(n_arr, time_n_L_1O, label = r'$L_1$ Orthogonal Regularization')  
+    axs[1].plot(n_arr, time_n_SLS, label = 'Landmark Selection')
     axs[1].plot(n_arr, time_n_leverage, label = 'Leverage Scores')
     # legend
     axs[1].legend()
@@ -1378,8 +979,8 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
     axs[1].set_xlabel('n')
     axs[1].label_outer()
 
-    axs[2].plot(s_arr, time_s_massart, label = r'$L_1$ Orthogonal Regularization')
-    axs[2].plot(s_arr, time_s_mathur, label = 'Landmark Selection')
+    axs[2].plot(s_arr, time_s_L_1O, label = r'$L_1$ Orthogonal Regularization')
+    axs[2].plot(s_arr, time_s_SLS, label = 'Landmark Selection')
     axs[2].plot(s_arr, time_s_leverage, label = 'Leverage Scores')
     # legend
     axs[2].legend()
@@ -1390,15 +991,15 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
 
     plt.tight_layout()
     if save:
-        plt.savefig('results/speed_mathur_massart_leverages_Arrithmia.svg')
+        plt.savefig('results/speed_SLS_L_1O_leverages_Arrithmia.svg')
     else:
         plt.show()
 
     fig, axs = plt.subplots(1, 3, figsize=(12, 4), sharex=False, sharey=True)
     fig.suptitle('Execution Time Comparison', fontsize=16)
 
-    axs[0].plot(m_arr, time_m_iter_massart, label = r'$L_1$ Orthogonal Regularization')
-    axs[0].plot(m_arr, time_m_iter_mathur, label = 'Landmark Selection')
+    axs[0].plot(m_arr, time_m_iter_L_1O, label = r'$L_1$ Orthogonal Regularization')
+    axs[0].plot(m_arr, time_m_iter_SLS, label = 'Landmark Selection')
     # legend
     axs[0].legend()
     # axs[0].set_title('Time per iteration vs n')
@@ -1406,8 +1007,8 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
     axs[0].set_xlabel('m')
     axs[0].label_outer()
 
-    axs[1].plot(n_arr, time_n_iter_massart, label = r'$L_1$ Orthogonal Regularization')
-    axs[1].plot(n_arr, time_n_iter_mathur, label = 'Landmark Selection')
+    axs[1].plot(n_arr, time_n_iter_L_1O, label = r'$L_1$ Orthogonal Regularization')
+    axs[1].plot(n_arr, time_n_iter_SLS, label = 'Landmark Selection')
     # legend
     axs[1].legend()
     # axs[1].set_title('Time per iteration vs m')
@@ -1415,8 +1016,8 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
     axs[1].set_xlabel('n')
     axs[1].label_outer()
 
-    axs[2].plot(s_arr, time_s_iter_massart, label = r'$L_1$ Orthogonal Regularization')
-    axs[2].plot(s_arr, time_s_iter_mathur, label = 'Landmark Selection')
+    axs[2].plot(s_arr, time_s_iter_L_1O, label = r'$L_1$ Orthogonal Regularization')
+    axs[2].plot(s_arr, time_s_iter_SLS, label = 'Landmark Selection')
     # legend
     axs[2].legend()
     # axs[2].set_title('Time per iteration vs s')
@@ -1426,21 +1027,21 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
 
     plt.tight_layout()
     if save:
-        plt.savefig('results/speed_mathur_massart__leverages_Arrithmia_by_iter.svg')
+        plt.savefig('results/speed_SLS_L_1O__leverages_Arrithmia_by_iter.svg')
     else:
         plt.show()
 
     # store all the results in a file .txt
     if save:
-        with open('results/speed_mathur_massart_leverages_Arrithmia.txt', 'w') as f:
+        with open('results/speed_SLS_L_1O_leverages_Arrithmia.txt', 'w') as f:
             f.write('m : ')
             f.write(str(m_arr))
             f.write('\n')
-            f.write('time_m_massart : ')
-            f.write(str(time_m_massart))
+            f.write('time_m_L_1O : ')
+            f.write(str(time_m_L_1O))
             f.write('\n')
-            f.write('time_m_mathur : ')
-            f.write(str(time_m_mathur))
+            f.write('time_m_SLS : ')
+            f.write(str(time_m_SLS))
             f.write('\n')
             f.write('time_m_leverage : ')
             f.write(str(time_m_leverage))
@@ -1448,11 +1049,11 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
             f.write('n : ')
             f.write(str(n_arr))
             f.write('\n')
-            f.write('time_n_massart : ')
-            f.write(str(time_n_massart))
+            f.write('time_n_L_1O : ')
+            f.write(str(time_n_L_1O))
             f.write('\n')
-            f.write('time_n_mathur : ')
-            f.write(str(time_n_mathur))
+            f.write('time_n_SLS : ')
+            f.write(str(time_n_SLS))
             f.write('\n')
             f.write('time_n_leverage : ')
             f.write(str(time_n_leverage))
@@ -1460,11 +1061,11 @@ def test_speed(X, itermax = 2000, n_test = 10, save = False):
             f.write('s : ')
             f.write(str(s_arr))
             f.write('\n')
-            f.write('time_s_massart : ')
-            f.write(str(time_s_massart))
+            f.write('time_s_L_1O : ')
+            f.write(str(time_s_L_1O))
             f.write('\n')
-            f.write('time_s_mathur : ')
-            f.write(str(time_s_mathur))
+            f.write('time_s_SLS : ')
+            f.write(str(time_s_SLS))
             f.write('\n')
             f.write('time_s_leverage : ')
             f.write(str(time_s_leverage))
@@ -1568,13 +1169,13 @@ def influence_of_c_Boutsidis_real_matrix(X, n1 = 20, n2 = 50, s = 30, n_test = 1
 
 
 
-# test_speed(2.5, 6e-4, n = 50, m = 20, method = 'Massart', itermax = 20, n_test = 10, save = False)
-# test_speed(2.5, 6e-4, n = 50, m = 20, method = 'Mathur', itermax = 3, n_test = 50, save = False)
+# test_speed(2.5, 6e-4, n = 50, m = 20, method = 'L_1O', itermax = 20, n_test = 10, save = False)
+# test_speed(2.5, 6e-4, n = 50, m = 20, method = 'SLS', itermax = 3, n_test = 50, save = False)
 
 
-def artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax,tol=1e-5, methods = ['Massart', 'Mathur']):
+def artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax,tol=1e-5, methods = ['L_1O', 'SLS']):
     """
-    Test the massart function on a big matrix. Create a file that 
+    Test the L_1O function on a big matrix. Create a file that 
     Parameters:
         n_test (int): The number of test to perform.
         n1 (int): The number of lines.
@@ -1603,14 +1204,14 @@ def artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax,tol
             print(sig)
             for i in range(n_test):
                 X = ft.read_artificial_matrix_from_file(i, n1, n2, s, sig)
-                if (method == 'Massart'):
-                    (relevant_col_indices, err, niter) = massart(X, n1, n2, s, ld, step, itermax, display = True, tol = 1e-5)
-                    print('the number of iterations for massart is : ', niter)
-                    print('error of massart : ', err)
-                if(method == 'Mathur'):
-                    (relevant_col_indices, err,  niter) = mathur( X, n1, n2, s, ld, step, itermax, tol=1e-5)
-                    print('the number of iterations for mathur is : ', niter)    
-                    print('error of mathur : ', err)
+                if (method == 'L_1O'):
+                    (relevant_col_indices, err, niter) = L_1O(X, n1, n2, s, ld, step, itermax, display = True, tol = 1e-5)
+                    print('the number of iterations for L_1O is : ', niter)
+                    print('error of L_1O : ', err)
+                if(method == 'SLS'):
+                    (relevant_col_indices, err,  niter) = SLS( X, n1, n2, s, ld, step, itermax, tol=1e-5)
+                    print('the number of iterations for SLS is : ', niter)    
+                    print('error of SLS : ', err)
                 count += np.sum((relevant_col_indices < n2 - s))
             results_dict[method][sig] = (1-(count/(n_test*s)))*100
             count = 0
@@ -1654,7 +1255,7 @@ def t_plot(steps, Approximation_factors, filename = 'arrithmia'):
     plt.xlabel('step')
     plt.ylabel('Approximation factor')
     plt.grid()
-    plt.savefig('results/MNIST_mathur_step'+filename+'.svg')
+    plt.savefig('results/MNIST_SLS_step'+filename+'.svg')
 
 
 
@@ -1667,10 +1268,10 @@ def test_speed_1(r = 9):
     n = m*2
     s = m/2
     n_test = 9
-    time_massart = np.zeros(r)  
-    iter_massart = np.zeros(r)
-    time_mathur = np.zeros(r)
-    iter_mathur = np.zeros(r)
+    time_L_1O = np.zeros(r)  
+    iter_L_1O = np.zeros(r)
+    time_SLS = np.zeros(r)
+    iter_SLS = np.zeros(r)
     for (i, m_, n_, s_) in zip(range(r),m, n, s):
         if i > 4:
             n_test = 2
@@ -1680,38 +1281,38 @@ def test_speed_1(r = 9):
         for j in range(n_test):
             X = ft.matrix_from_file(j, int(m_), int(n_))
             timer = time.time()
-            results_massart = massart(X, int(m_), int(n_), int(s_), 1e-8, 1e5, 400, display=False, tol = 1e-5)
-            time_massart[i] += (time.time() - timer)/(results_massart[2]*n_test)
-            iter_massart[i] += results_massart[2]/n_test   
+            results_L_1O = L_1O(X, int(m_), int(n_), int(s_), 1e-8, 1e5, 400, display=False, tol = 1e-5)
+            time_L_1O[i] += (time.time() - timer)/(results_L_1O[2]*n_test)
+            iter_L_1O[i] += results_L_1O[2]/n_test   
             timer = time.time()
-            results_mathur = mathur(X, int(m_), int(n_), int(s_), 100, 1e-5, 400, display=False, tol = 1e-10, stochastic=True)
-            time_mathur[i] += (time.time() - timer)/(results_mathur[2]*n_test)
-            iter_mathur[i] += results_mathur[2]/n_test
+            results_SLS = SLS(X, int(m_), int(n_), int(s_), 100, 1e-5, 400, display=False, tol = 1e-10, stochastic=True)
+            time_SLS[i] += (time.time() - timer)/(results_SLS[2]*n_test)
+            iter_SLS[i] += results_SLS[2]/n_test
         
         print('r : ', i)
-        print('time massart : ', time_massart)
-        print('n iter massart : ', results_massart[2])
-        print('time mathur : ', time_mathur)
-        print('n iter mathur : ', results_mathur[2])
-        # print(Approximation_factor_C(X, int(s_), X[:,results_massart[0]]))
+        print('time L_1O : ', time_L_1O)
+        print('n iter L_1O : ', results_L_1O[2])
+        print('time SLS : ', time_SLS)
+        print('n iter SLS : ', results_SLS[2])
+        # print(Approximation_factor_C(X, int(s_), X[:,results_L_1O[0]]))
         # print(Approximation_factor_C(X, int(s_), Uniform_sampling(X, int(s_))[0]))
-        # print('error massart : ', results_massart[1])
+        # print('error L_1O : ', results_L_1O[1])
     #write the results in a file .txt
     with open('results/speed1_comparison_2.txt', 'w') as f:
         f.write('m : ')
         f.write(str(m))
         f.write('\n')
-        f.write('time_massart : ')
-        f.write(str(time_massart))
+        f.write('time_L_1O : ')
+        f.write(str(time_L_1O))
         f.write('\n')
-        f.write('iter_massart : ')
-        f.write(str(iter_massart))
+        f.write('iter_L_1O : ')
+        f.write(str(iter_L_1O))
         f.write('\n')
-        f.write('time_mathur : ')
-        f.write(str(time_mathur))
+        f.write('time_SLS : ')
+        f.write(str(time_SLS))
         f.write('\n')
-        f.write('iter_mathur : ')
-        f.write(str(iter_mathur))
+        f.write('iter_SLS : ')
+        f.write(str(iter_SLS))
         f.write('\n')
         f.close()
 
@@ -1725,14 +1326,14 @@ def plot_speed_1(filename = '_', save = False):
         m = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
         print(m)
         n = m*2
-        time_massart = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
-        iter_massart = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
-        time_mathur = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
-        iter_mathur = np.array(lines[4].split('[')[1].split(']')[0].split()).astype(float)
-        two_n = np.array([time_massart[0]*(i/4)**2 for i in m])
-        three_n = np.array([time_massart[0]*(i/4)**3 for i in m])
-    ax.plot(m, time_massart, label = r'$L_1$ Orthogonal Regularization', color = 'blue')#, base = 2)
-    ax.plot(m, time_mathur/5, label = 'Stochastic Landmark Selection', color = 'green')#, base = 2)
+        time_L_1O = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
+        iter_L_1O = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
+        time_SLS = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
+        iter_SLS = np.array(lines[4].split('[')[1].split(']')[0].split()).astype(float)
+        two_n = np.array([time_L_1O[0]*(i/4)**2 for i in m])
+        three_n = np.array([time_L_1O[0]*(i/4)**3 for i in m])
+    ax.plot(m, time_L_1O, label = r'$L_1$ Orthogonal Regularization', color = 'blue')#, base = 2)
+    ax.plot(m, time_SLS/5, label = 'Stochastic Landmark Selection', color = 'green')#, base = 2)
     ax.plot(m, two_n, label = r'$\mathcal{O}(n^2 )$', color = 'black', linestyle='--')
     ax.plot(m, three_n, label = r'$\mathcal{O}(n^3 )$', color = 'black', linestyle=':')
     ax.set_xlabel('n')
@@ -1742,7 +1343,7 @@ def plot_speed_1(filename = '_', save = False):
     #set xlim
     ax.set_xlim(4, 2**12)
     #set ylim
-    ax.set_ylim(time_massart[0], time_mathur[-1])
+    ax.set_ylim(time_L_1O[0], time_SLS[-1])
     ax.set_ylabel('Time [s] / iteration')
     ax.legend()
     ax.grid()
@@ -1779,38 +1380,38 @@ def test_speed_2(X, Xlist = True, filename=''):
     s = np.arange(0.05,1,0.1)*m
     print(s)
     n_test = 5
-    time_massart = np.zeros(len(s))
-    time_mathur = np.zeros(len(s))
+    time_L_1O = np.zeros(len(s))
+    time_SLS = np.zeros(len(s))
     for (j,s_) in zip(range(len(s)),s): 
         for i in range(n_test):
             timer = time.time()
-            results_massart = massart(X, m, n, int(s_), 1e-8, 1e5, 100, display=False, tol = 1e-3)
-            time_massart[j] += (time.time() - timer)/(results_massart[2])
-            print('massart done')
+            results_L_1O = L_1O(X, m, n, int(s_), 1e-8, 1e5, 100, display=False, tol = 1e-3)
+            time_L_1O[j] += (time.time() - timer)/(results_L_1O[2])
+            print('L_1O done')
             timer = time.time()
-            results_mathur = mathur(X, m, n, int(s_),  1, 1e-3, 100, display=False, tol = 1e-5)
-            time_mathur[j] += (time.time() - timer)/(results_mathur[2])
-        print('time mathur : ', time_mathur)
-        print('time massart : ', time_massart)
-        print('n iter massart : ', results_massart[2])
-        print('n iter mathur : ', results_mathur[2])
-        # print('error massart : ', results_massart[1])
-    time_massart = time_massart/n_test
-    time_mathur = time_mathur/n_test
-    #store the time_massart and time_mathur in a file .txt
+            results_SLS = SLS(X, m, n, int(s_),  1, 1e-3, 100, display=False, tol = 1e-5)
+            time_SLS[j] += (time.time() - timer)/(results_SLS[2])
+        print('time SLS : ', time_SLS)
+        print('time L_1O : ', time_L_1O)
+        print('n iter L_1O : ', results_L_1O[2])
+        print('n iter SLS : ', results_SLS[2])
+        # print('error L_1O : ', results_L_1O[1])
+    time_L_1O = time_L_1O/n_test
+    time_SLS = time_SLS/n_test
+    #store the time_L_1O and time_SLS in a file .txt
     with open('results/speed2_comparison'+filename+'.txt', 'w') as f:
         f.write('s : ')
         f.write(str(s))
         f.write('\n')
-        f.write('time_massart : ')
-        f.write(str(time_massart))
+        f.write('time_L_1O : ')
+        f.write(str(time_L_1O))
         f.write('\n')
-        f.write('time_mathur : ')
-        f.write(str(time_mathur))
+        f.write('time_SLS : ')
+        f.write(str(time_SLS))
         f.write('\n')
         f.close()
-    plt.plot(s, time_massart, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
-    plt.plot(s, time_mathur, label = 'Stochatic Landmark Selection',color = 'green')
+    plt.plot(s, time_L_1O, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
+    plt.plot(s, time_SLS, label = 'Stochatic Landmark Selection',color = 'green')
     plt.legend()
     plt.xlabel('s') 
     plt.ylabel('Time (s)/iteration')
@@ -1825,20 +1426,20 @@ def plot_speed_2(filename = '_', save = False):
     with open('results/definitif/speed2.txt', 'r') as f:
         lines = f.readlines()
         s = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
-        time_mathur = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
-        time_massart = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
+        time_SLS = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
+        time_L_1O = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
     s = s/784
-    ax.plot(s, time_massart, label = r'$L_1$ Orthogonal Regularization', color = 'blue')#, base = 2)
-    ax.plot(s, time_mathur, label = 'Stochastic Landmark Selection', color = 'green')#, base = 2)
+    ax.plot(s, time_L_1O, label = r'$L_1$ Orthogonal Regularization', color = 'blue')#, base = 2)
+    ax.plot(s, time_SLS, label = 'Stochastic Landmark Selection', color = 'green')#, base = 2)
     ax.set_xlabel('s/m %')
     #xscale = log
     # ax.set_xscale('log')
     # ax.set_yscale('log')
     #set xlim
     ax.set_xlim(s[0], s[-1])
-    ax.set_ylim(time_massart[0], time_massart[-1])
+    ax.set_ylim(time_L_1O[0], time_L_1O[-1])
     #set ylim
-    # ax.set_ylim(time_massart[0], time_massart[-1])
+    # ax.set_ylim(time_L_1O[0], time_L_1O[-1])
     ax.set_ylabel('Time [s]/iteration')
     ax.legend()
     ax.grid()
@@ -1852,154 +1453,154 @@ def plot_speed_2(filename = '_', save = False):
 
 # test_speed_2()
 
-def test_speed_3(Xlist, s, itermax,mod,  ld_massart, step_massart, ld_mathur, step_mathur, filename = ''):
+def test_speed_3(Xlist, s, itermax,mod,  ld_L_1O, step_L_1O, ld_SLS, step_SLS, filename = ''):
     (m, n) = np.shape(Xlist[0])
     # np.random.seed(42)
     # X = np.random.randn(m, n)
     n_test = len(Xlist)
     #to change
-    time_massart = 0
-    time_mathur = 0
+    time_L_1O = 0
+    time_SLS = 0
     # mod = 10
 
-    indices_massart = np.zeros(itermax//mod+1)
-    Time_array_massart = np.zeros(itermax//mod+1)
-    Error_array_massart = np.zeros((n_test, itermax//mod+1))
-    n_array_massart = np.zeros(itermax//mod+1)
-    Time_array_mathur = np.zeros(itermax//mod+1)
-    Error_array_mathur = np.zeros((n_test, itermax//mod+1))
-    n_array_mathur = np.zeros(itermax//mod+1)
+    indices_L_1O = np.zeros(itermax//mod+1)
+    Time_array_L_1O = np.zeros(itermax//mod+1)
+    Error_array_L_1O = np.zeros((n_test, itermax//mod+1))
+    n_array_L_1O = np.zeros(itermax//mod+1)
+    Time_array_SLS = np.zeros(itermax//mod+1)
+    Error_array_SLS = np.zeros((n_test, itermax//mod+1))
+    n_array_SLS = np.zeros(itermax//mod+1)
 
-    idxi_massart = itermax//mod+1
-    idxi_mathur = itermax//mod+1
+    idxi_L_1O = itermax//mod+1
+    idxi_SLS = itermax//mod+1
     for (i,X) in enumerate(Xlist):
         print('test number : ', i)
         # X = np.random.randn(m, n)
         error_svd = CSSP_approximation_svd(X, m, n, s)[1]
         print('svd done')
-        results_massart = massart_part1_speed(X, m, n, s, ld_massart, step_massart, itermax ,mod, display=False, tol = 1e-3)
-        print('massart done')
-        results_mathur = mathur_speed(X, m, n, s, ld_mathur, step_mathur, itermax, mod, display=False, tol = 1e-3)
-        print('mathur done')
-        # print('results_mathur : ', results_mathur)
-        # print('Error_array shape: ', np.shape(results_massart[2]))
+        results_L_1O = L_1O_part1_speed(X, m, n, s, ld_L_1O, step_L_1O, itermax ,mod, display=False, tol = 1e-3)
+        print('L_1O done')
+        results_SLS = SLS_speed(X, m, n, s, ld_SLS, step_SLS, itermax, mod, display=False, tol = 1e-3)
+        print('SLS done')
+        # print('results_SLS : ', results_SLS)
+        # print('Error_array shape: ', np.shape(results_L_1O[2]))
         # print('Error_array shape: ', np.shape(Error_array))
-        Time_array_massart += results_massart[0]
-        n_array_massart += results_massart[1]
-        Error_array_massart[i] = results_massart[2]/error_svd
-        print('shape of Time_array_mathur : ', np.shape(Time_array_mathur))
-        print('shape of results_mathur[0] : ', np.shape(results_mathur[0]))
-        Time_array_mathur += results_mathur[0]
-        n_array_mathur += results_mathur[1]
-        Error_array_mathur[i] = results_mathur[2]/error_svd
-        # print('results_massart[2] : ', results_massart[2])
-        if (np.where(results_massart[2] == 0)[0][0]<idxi_massart):
-            idxi_massart = (np.where(results_massart[2] == 0))[0][0]
+        Time_array_L_1O += results_L_1O[0]
+        n_array_L_1O += results_L_1O[1]
+        Error_array_L_1O[i] = results_L_1O[2]/error_svd
+        print('shape of Time_array_SLS : ', np.shape(Time_array_SLS))
+        print('shape of results_SLS[0] : ', np.shape(results_SLS[0]))
+        Time_array_SLS += results_SLS[0]
+        n_array_SLS += results_SLS[1]
+        Error_array_SLS[i] = results_SLS[2]/error_svd
+        # print('results_L_1O[2] : ', results_L_1O[2])
+        if (np.where(results_L_1O[2] == 0)[0][0]<idxi_L_1O):
+            idxi_L_1O = (np.where(results_L_1O[2] == 0))[0][0]
         
-        if (np.where(results_mathur[2] == 0)[0][0]<idxi_mathur):
-            idxi_mathur = (np.where(results_mathur[2] == 0))[0][0]
+        if (np.where(results_SLS[2] == 0)[0][0]<idxi_SLS):
+            idxi_SLS = (np.where(results_SLS[2] == 0))[0][0]
 
-        print('idxi : ', idxi_massart)
-        print('idxi : ', idxi_mathur)
-        # indices_massart[:idxi] += np.ones(idxi) #ok
+        print('idxi : ', idxi_L_1O)
+        print('idxi : ', idxi_SLS)
+        # indices_L_1O[:idxi] += np.ones(idxi) #ok
 
-    # print(indices_massart[:2])
+    # print(indices_L_1O[:2])
     
     #find the first 0 index in Time_array
     # idx = np.where(Time_array == 0)[0][0]
     # print('idx : ', idx)
-    Time_array_massart = Time_array_massart[:idxi_massart]/n_test
-    n_array_massart = n_array_massart[:idxi_massart]/n_test
-    Error_array_mean_massart = Error_array_massart[:,:idxi_massart].mean(axis = 0)
-    yerr_massart = Error_array_massart[:,:idxi_massart].std(axis = 0)
+    Time_array_L_1O = Time_array_L_1O[:idxi_L_1O]/n_test
+    n_array_L_1O = n_array_L_1O[:idxi_L_1O]/n_test
+    Error_array_mean_L_1O = Error_array_L_1O[:,:idxi_L_1O].mean(axis = 0)
+    yerr_L_1O = Error_array_L_1O[:,:idxi_L_1O].std(axis = 0)
 
-    Time_array_mathur = Time_array_mathur[:idxi_mathur]/n_test
-    n_array_mathur = n_array_mathur[:idxi_mathur]/n_test
-    Error_array_mean_mathur = Error_array_mathur[:,:idxi_mathur].mean(axis = 0)
-    yerr_mathur = Error_array_mathur[:,:idxi_mathur].std(axis = 0)
+    Time_array_SLS = Time_array_SLS[:idxi_SLS]/n_test
+    n_array_SLS = n_array_SLS[:idxi_SLS]/n_test
+    Error_array_mean_SLS = Error_array_SLS[:,:idxi_SLS].mean(axis = 0)
+    yerr_SLS = Error_array_SLS[:,:idxi_SLS].std(axis = 0)
 
-    print(len(Error_array_mean_massart))
-    # Time_array_massart = np.linspace(1, 100, 100)
+    print(len(Error_array_mean_L_1O))
+    # Time_array_L_1O = np.linspace(1, 100, 100)
     #save Timme_array, n_array, Error_array_mean and Error_array_std in a file .txt
-    with open('results/speed3/speed3_comparison_massart_'+filename+'.txt', 'w') as f:
-        f.write('Time_array_massart : ')
-        f.write(np.array2string(Time_array_massart, max_line_width=np.inf))
+    with open('results/speed3/speed3_comparison_L_1O_'+filename+'.txt', 'w') as f:
+        f.write('Time_array_L_1O : ')
+        f.write(np.array2string(Time_array_L_1O, max_line_width=np.inf))
         f.write('\n')
-        f.write('n_array_massart : ')
-        f.write(np.array2string(n_array_massart, max_line_width=np.inf))
+        f.write('n_array_L_1O : ')
+        f.write(np.array2string(n_array_L_1O, max_line_width=np.inf))
         f.write('\n')
-        f.write('Error_array_mean_massart : ')
-        f.write(np.array2string(Error_array_mean_massart, max_line_width=np.inf))
+        f.write('Error_array_mean_L_1O : ')
+        f.write(np.array2string(Error_array_mean_L_1O, max_line_width=np.inf))
         f.write('\n')
-        f.write('Error_array_std_massart : ')
-        f.write(np.array2string(yerr_massart, max_line_width=np.inf))
+        f.write('Error_array_std_L_1O : ')
+        f.write(np.array2string(yerr_L_1O, max_line_width=np.inf))
         f.write('\n')
         f.close()
         
-    with open('results/speed3/speed3_comparison_mathur_'+filename+'.txt', 'w') as f:
-        f.write('Time_array_mathur : ')
-        f.write(np.array2string(Time_array_mathur, max_line_width=np.inf))
+    with open('results/speed3/speed3_comparison_SLS_'+filename+'.txt', 'w') as f:
+        f.write('Time_array_SLS : ')
+        f.write(np.array2string(Time_array_SLS, max_line_width=np.inf))
         f.write('\n')
-        f.write('n_array_mathur : ')
-        f.write(np.array2string(n_array_mathur, max_line_width=np.inf))
+        f.write('n_array_SLS : ')
+        f.write(np.array2string(n_array_SLS, max_line_width=np.inf))
         f.write('\n')
-        f.write('Error_array_mean_mathur : ')
-        f.write(np.array2string(Error_array_mean_mathur, max_line_width=np.inf))
+        f.write('Error_array_mean_SLS : ')
+        f.write(np.array2string(Error_array_mean_SLS, max_line_width=np.inf))
         f.write('\n')
-        f.write('Error_array_std_mathur : ')
-        f.write(np.array2string(yerr_mathur, max_line_width=np.inf))
+        f.write('Error_array_std_SLS : ')
+        f.write(np.array2string(yerr_SLS, max_line_width=np.inf))
         f.write('\n')
         f.close()
     #Error_array[:idxi]/n_test
-    # indices_massart = indices_massart[:idxi]/n_test
+    # indices_L_1O = indices_L_1O[:idxi]/n_test
     #create two plot side by side 
     fig, axs = plt.subplots(1, 2, figsize=(12, 4), sharex=False, sharey=True)
     fig.suptitle('Execution Time Comparison', fontsize=16)
     # print('Time_array : ', Time_array)
     # axs[0].plot(Time_array, Error_array, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
-    # axs[0].plot(Time_array_massart, Error_array_mean_massart, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
-    # axs[0].plot(Time_array_mathur, Error_array_mean_mathur, label = 'Landmark Selection',color = 'green')
-    # axs[1].plot(n_array_massart, Error_array_mean_massart, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
-    # axs[1].plot(n_array_mathur, Error_array_mean_mathur, label = 'Landmark Selection',color = 'green')
+    # axs[0].plot(Time_array_L_1O, Error_array_mean_L_1O, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
+    # axs[0].plot(Time_array_SLS, Error_array_mean_SLS, label = 'Landmark Selection',color = 'green')
+    # axs[1].plot(n_array_L_1O, Error_array_mean_L_1O, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
+    # axs[1].plot(n_array_SLS, Error_array_mean_SLS, label = 'Landmark Selection',color = 'green')
     # plt.show()
     return None 
 
     
-def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = 'noname', save = False,  ylim = False):
-    with open('results/speed3/'+filename_massart+'.txt', 'r') as f:
+def plot_speed_3(filename_L_1O = '_', filename_SLS = '_', dataset_name = 'noname', save = False,  ylim = False):
+    with open('results/speed3/'+filename_L_1O+'.txt', 'r') as f:
         lines = f.readlines()
-        Times_arr_massart = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
-        n_arr_massart = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
-        Error_arr_mean_massart = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
-        Error_arr_std_massart = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
-    with open('results/speed3/'+filename_mathur+'.txt', 'r') as f:
+        Times_arr_L_1O = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
+        n_arr_L_1O = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
+        Error_arr_mean_L_1O = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
+        Error_arr_std_L_1O = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
+    with open('results/speed3/'+filename_SLS+'.txt', 'r') as f:
         lines = f.readlines()
-        Times_arr_mathur = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
-        n_arr_mathur = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
-        Error_arr_mean_mathur = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
-        Error_arr_std_mathur = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
+        Times_arr_SLS = np.array(lines[0].split('[')[1].split(']')[0].split()).astype(float)
+        n_arr_SLS = np.array(lines[1].split('[')[1].split(']')[0].split()).astype(float)
+        Error_arr_mean_SLS = np.array(lines[2].split('[')[1].split(']')[0].split()).astype(float)
+        Error_arr_std_SLS = np.array(lines[3].split('[')[1].split(']')[0].split()).astype(float)
     if ylim:
         n_lim = 364
-        t_lim = Times_arr_mathur[n_lim]
+        t_lim = Times_arr_SLS[n_lim]
     # fig, axs = plt.subplots(1, 2, figsize=(12, 4), sharex=False, sharey=True)
     # fig.suptitle('Execution Time Comparison', fontsize=16)
-    # axs[0].plot(Times_arr_massart, Error_arr_mean_massart, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
-    # # axs[0].fill_between(Times_arr_massart, Error_arr_mean_massart - Error_arr_std_massart, Error_arr_mean_massart + Error_arr_std_massart, color = 'blue', alpha = 0.2)
-    # axs[0].plot(Times_arr_mathur, Error_arr_mean_mathur, label = 'Landmark Selection',color = 'green')
+    # axs[0].plot(Times_arr_L_1O, Error_arr_mean_L_1O, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
+    # # axs[0].fill_between(Times_arr_L_1O, Error_arr_mean_L_1O - Error_arr_std_L_1O, Error_arr_mean_L_1O + Error_arr_std_L_1O, color = 'blue', alpha = 0.2)
+    # axs[0].plot(Times_arr_SLS, Error_arr_mean_SLS, label = 'Landmark Selection',color = 'green')
     # if ylim:
     #     axs[0].set_xlim(0, t_lim)
     # else :
-    #     axs[0].set_xlim(0, Times_arr_mathur[-1])
+    #     axs[0].set_xlim(0, Times_arr_SLS[-1])
     # axs[0].set_xlabel('Time (s)')
     # axs[0].set_ylabel('Approximation factor')
     # #set grid 
     # axs[0].grid()
-    # axs[1].plot(n_arr_massart, Error_arr_mean_massart, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
-    # axs[1].plot(n_arr_mathur, Error_arr_mean_mathur, label = 'Landmark Selection',color = 'green')
+    # axs[1].plot(n_arr_L_1O, Error_arr_mean_L_1O, label = r'$L_1$ Orthogonal Regularization',color = 'blue')
+    # axs[1].plot(n_arr_SLS, Error_arr_mean_SLS, label = 'Landmark Selection',color = 'green')
     # if ylim:
     #     axs[1].set_xlim(0, n_lim)
     # else :
-    #     axs[1].set_xlim(0, n_arr_mathur[-1])
+    #     axs[1].set_xlim(0, n_arr_SLS[-1])
     # axs[1].set_xlabel('Iteration')
     # axs[1].set_ylabel('Approximation factor')
     # #set grid
@@ -2016,20 +1617,20 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
     axs1_twin = axs[0].twiny()  # Create a secondary x-axis
 
     # Plot on the primary x-axis
-    axs[0].plot(Times_arr_massart, Error_arr_mean_massart, label=r'$L_1$ Orthogonal Regularization', color='blue')
+    axs[0].plot(Times_arr_L_1O, Error_arr_mean_L_1O, label=r'$L_1$ Orthogonal Regularization', color='blue')
 
     axs[0].set_xlabel(r"L$_1$OR's  time [s]")
     axs[0].set_ylabel('Approximation factor')
-    axs[0].set_xlim(0, Times_arr_massart[-1])
+    axs[0].set_xlim(0, Times_arr_L_1O[-1])
     axs[0].yaxis.grid(True)
 
 
-    axs1_twin.plot(Times_arr_mathur, Error_arr_mean_mathur, label = 'Stochatic Landmark Selection',  color='green')
+    axs1_twin.plot(Times_arr_SLS, Error_arr_mean_SLS, label = 'Stochatic Landmark Selection',  color='green')
     axs1_twin.set_xlabel(r"SLS's time [s]")
     if ylim:
         axs1_twin.set_xlim(0, t_lim)
     else:
-        axs1_twin.set_xlim(0, Times_arr_mathur[-1])
+        axs1_twin.set_xlim(0, Times_arr_SLS[-1])
     # Set limits for the primary x-axis
 
     # Set labels and grid for the primary axis
@@ -2042,11 +1643,11 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
     axs2_twin = axs[1].twiny()  # Create a secondary x-axis
 
     # Plot on the primary x-axis
-    axs[1].plot(n_arr_massart, Error_arr_mean_massart, label=r'$L_1$ Orthogonal Regularization', color='blue')
-    # axs[1].plot(n_arr_mathur, Error_arr_mean_mathur, label='Landmark Selection', color='green')
+    axs[1].plot(n_arr_L_1O, Error_arr_mean_L_1O, label=r'$L_1$ Orthogonal Regularization', color='blue')
+    # axs[1].plot(n_arr_SLS, Error_arr_mean_SLS, label='Landmark Selection', color='green')
 
     # Plot on the secondary x-axis
-    axs2_twin.plot(n_arr_mathur, Error_arr_mean_mathur, label = 'Stochatic Landmark Selection' , color='green')
+    axs2_twin.plot(n_arr_SLS, Error_arr_mean_SLS, label = 'Stochatic Landmark Selection' , color='green')
 
 
     # Set limits for the primary x-axis
@@ -2054,7 +1655,7 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
 
     # Set labels and grid for the primary axis
     axs[1].set_xlabel(r"L$_1$OR's iterations")
-    axs[1].set_xlim(0, n_arr_massart[-1])
+    axs[1].set_xlim(0, n_arr_L_1O[-1])
     axs[1].yaxis.grid(True)
 
     # Set labels for the secondary x-axis
@@ -2062,7 +1663,7 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
     if ylim:
         axs2_twin.set_xlim(0, n_lim)
     else:
-        axs2_twin.set_xlim(0, n_arr_mathur[-1])
+        axs2_twin.set_xlim(0, n_arr_SLS[-1])
     # Add legends to both subplots
     axs[0].legend()
     axs2_twin.legend()
@@ -2079,24 +1680,24 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
 # def find_param 
 ##############OPTIMAL PARAMETERS TESTS################
 # ###BIG MATRIX 
-# print('error of mathur : ', err)
+# print('error of SLS : ', err)
 
 # n_test = 50
 # itermax = 2000
-# mathur large done
+# SLS large done
 # step_min = 1e-5
 # step_max = 1e1
 # ld_min = 1e-4
 # ld_max = 1e2
-# test_find_optimal_params_mathur(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7), itermax, 'parameters error', True, bigsize=True, size = 'large')
+# test_find_optimal_params_SLS(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7), itermax, 'parameters error', True, bigsize=True, size = 'large')
 
-# mathur average ok
+# SLS average ok
 # Lambda: 10.0, step: 0.001, error 0.25025797025121677, iteration 265.0
 # step_min = 1e-4
 # step_max = 1e-2
 # ld_min = 1e0
 # ld_max = 1e2
-# test_find_optimal_params_mathur(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6), itermax, 'parameters error', True, bigsize=True, size='average')
+# test_find_optimal_params_SLS(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6), itermax, 'parameters error', True, bigsize=True, size='average')
 
 # step_min = 10e-4
 # step_max = 23e-4
@@ -2107,50 +1708,50 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
 # Lambda: 6.309573444801933, step: 0.001584893192461114
 #  Lambda: 2.51188643150958, step: 0.000630957344480193,
 # 15e-4 on va de 
-# test_find_optimal_params_mathur(n1, n2, s, n_test, np.arange(ld_min, ld_max, 1), np.arange(step_min, step_max, 2e-4), itermax, 'parameters error', True, bigsize=True, size='zoomed')
+# test_find_optimal_params_SLS(n1, n2, s, n_test, np.arange(ld_min, ld_max, 1), np.arange(step_min, step_max, 2e-4), itermax, 'parameters error', True, bigsize=True, size='zoomed')
 
-### The optimal parameters of mathur for the 20x50 with s = 10 are Lambda: 2.5, step: 0.0016
+### The optimal parameters of SLS for the 20x50 with s = 10 are Lambda: 2.5, step: 0.0016
 
-# # massart large # done
+# # L_1O large # done
 # step_min = 1e-5
 # step_max = 1e2
 # ld_min = 1e-5
 # ld_max = 1e2
-# test_find_optimal_params_massart(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7), itermax,'parameters error', True, bigsize=True, size = 'large')
+# test_find_optimal_params_L_1O(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7), itermax,'parameters error', True, bigsize=True, size = 'large')
 
-# #massart average ok
+# #L_1O average ok
 # Lambda: 0.001, step: 1.0, error 0.2668888317997294, iteration 65.6
 
 # step_min = 1e-1
 # step_max = 1e1
 # ld_min = 1e-4
 # ld_max = 1e-2
-# test_find_optimal_params_massart(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6),itermax, 'parameters error', True, bigsize= True, size='average')
+# test_find_optimal_params_L_1O(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6),itermax, 'parameters error', True, bigsize= True, size='average')
 
-# massart zoomed 
+# L_1O zoomed 
 # Lambda: 0.001584893192461114, step: 3.981071705534973
 # Lambda: 0.001584893192461114, step: 0.6309573444801934
 # step_min = 0.2
 # step_max = 1.6
 # ld_min = 6e-4
 # ld_max = 40e-4
-# test_find_optimal_params_massart(n1, n2, s, n_test, np.arange(ld_min, ld_max, 5e-4), np.arange(step_min, step_max, 0.2),itermax, 'parameters error', True, bigsize= True, size='zoomed')
+# test_find_optimal_params_L_1O(n1, n2, s, n_test, np.arange(ld_min, ld_max, 5e-4), np.arange(step_min, step_max, 0.2),itermax, 'parameters error', True, bigsize= True, size='zoomed')
 
 
 ###SMALL MATRIX
 # n1 = 5
 # n2 = 8
 # s = 3
-# # # mathur large  ##TO RUN
+# # # SLS large  ##TO RUN
 # step_min = 1e-4
 # step_max = 1e0
 # ld_min = 1e-4
 # ld_max = 1e0
 # n_test = 100
 # # # ft.create_matrix_file(n_test, n1, n2)
-# test_find_optimal_params_mathur(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7),itermax, 'parameters error', True, bigsize=False)
+# test_find_optimal_params_SLS(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7),itermax, 'parameters error', True, bigsize=False)
 
-# # mathur zoom #ok
+# # SLS zoom #ok
 # Lambda: 0.1, step: 0.001, error 0.10700085876786353, iteration 2000.0
 # step_min = 1e-2
 # step_max = 1e0
@@ -2158,32 +1759,32 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
 # ld_max = 1e-2
 # n_test = 10 #under 100
 # # ft.create_matrix_file(n_test, n1, n2)
-# test_find_optimal_params_mathur(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6),itermax, 'parameters error', True, bigsize=False, size='average')
+# test_find_optimal_params_SLS(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6),itermax, 'parameters error', True, bigsize=False, size='average')
 
-# massart large OK 
+# L_1O large OK 
 # step_min = 1e-3
 # step_max = 1e+1
 # ld_min = 1e-4
 # ld_max = 1e0
-# test_find_optimal_params_massart(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7), itermax,'parameters error', True, bigsize=False)
+# test_find_optimal_params_L_1O(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 7), np.geomspace(step_min, step_max, 7), itermax,'parameters error', True, bigsize=False)
 
-# # massart average ok
+# # L_1O average ok
 # Lambda: 0.01, step: 1.0, error 0.11223921059113146, iteration 34.85
 # step_min = 1e-1
 # step_max = 1e1
 # ld_min = 1e-3
 # ld_max = 1e-1
-# test_find_optimal_params_massart(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6), itermax,'parameters error', True, bigsize=False, size='average')
+# test_find_optimal_params_L_1O(n1, n2, s, n_test, np.geomspace(ld_min, ld_max, 6), np.geomspace(step_min, step_max, 6), itermax,'parameters error', True, bigsize=False, size='average')
 
-# # massart ultra zoom OK
+# # L_1O ultra zoom OK
 # ld_min = 0.003
 # ld_max = 0.018
 # step_min = 0.6
 # step_max = 3.6
-# test_find_optimal_params_massart(n1, n2, s, 100, np.linspace(ld_min, ld_max, 6), np.linspace(step_min, step_max, 6), 2000,'parameters error', True, bigsize=False)
-####The optimal parameters are for massart for 8 by 5 is Lambda: 0.006, step: 2.4. 
+# test_find_optimal_params_L_1O(n1, n2, s, 100, np.linspace(ld_min, ld_max, 6), np.linspace(step_min, step_max, 6), 2000,'parameters error', True, bigsize=False)
+####The optimal parameters are for L_1O for 8 by 5 is Lambda: 0.006, step: 2.4. 
 
-# ############### Mathur Non stoch tests ###############
+# ############### SLS Non stoch tests ###############
 # n1 = 20
 # n2 = 50
 # s = 10
@@ -2191,25 +1792,25 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
 # for i in range(10):
 #     # X = ft.read_artificial_matrix_from_file(i, n1, n2, s , 0.3)
 #     X = ft.matrix_from_file(i, n1, n2)
-#     # (indices, err, n_iter) = mathur_corrected(X, n1, n2, s, 2.5, 6e-3, 40, display=True)
-#     (indinces_mathur, err_mathur, n_iter_mathur, ti_stoch) = mathur_corrected(X, n1, n2, s, 2.5, 6e-3, 2000, display = True, delta = 10)
-#     print('error of mathur : ', err_mathur)
-#     (indices_mathur_stoch, err_mathur_stoch, n_iter_mathur_stoch, ti_stoch) = mathur(X, n1, n2, s, 2.5, 6e-3, 2000, display = True)
-#     print('error of mathur stoch : ', err_mathur_stoch)
+#     # (indices, err, n_iter) = SLS_corrected(X, n1, n2, s, 2.5, 6e-3, 40, display=True)
+#     (indinces_SLS, err_SLS, n_iter_SLS, ti_stoch) = SLS_corrected(X, n1, n2, s, 2.5, 6e-3, 2000, display = True, delta = 10)
+#     print('error of SLS : ', err_SLS)
+#     (indices_SLS_stoch, err_SLS_stoch, n_iter_SLS_stoch, ti_stoch) = SLS(X, n1, n2, s, 2.5, 6e-3, 2000, display = True)
+#     print('error of SLS stoch : ', err_SLS_stoch)
 #     # (indices_brute_force, err_brute_force) = brute_force(X, n1, n2, s)
-#     # (indices_massart, err_massart, n_iter_massart) = massart(X, n1, n2, s, 1, 0.00631, 2000, display = True)
-#     # print('% of correct indices of mathur corrected: ', (1-np.sum(indices < n2 - s)/s)*100)
-#     # print('this is the indices of mathur corrected', indices)
+#     # (indices_L_1O, err_L_1O, n_iter_L_1O) = L_1O(X, n1, n2, s, 1, 0.00631, 2000, display = True)
+#     # print('% of correct indices of SLS corrected: ', (1-np.sum(indices < n2 - s)/s)*100)
+#     # print('this is the indices of SLS corrected', indices)
 #     # print('this is the brute force indices', indices_brute_force)
-#     # print('% of correct indices error of mathur : ', (1-np.sum(indices_mathur < n2 - s)/s)*100)
-#     # print('this is mathur classic indices', indices_mathur)
-#     # print('% of correct indices error of massart : ', (1-np.sum(indices_massart < n2 - s)/s)*100)
-#     # print('this is massart indices', indices_massart)
+#     # print('% of correct indices error of SLS : ', (1-np.sum(indices_SLS < n2 - s)/s)*100)
+#     # print('this is SLS classic indices', indices_SLS)
+#     # print('% of correct indices error of L_1O : ', (1-np.sum(indices_L_1O < n2 - s)/s)*100)
+#     # print('this is L_1O indices', indices_L_1O)
 
 
-################ Test of the influence of M on mathur stochastique ################
+################ Test of the influence of M on SLS stochastique ################
 
-# influence_of_M_mathur(6)
+# influence_of_M_SLS(6)
 
 ###############PERFORMANCE TESTS################
 # n_test = 10
@@ -2217,16 +1818,16 @@ def plot_speed_3(filename_massart = '_', filename_mathur = '_', dataset_name = '
 # n2 = 50 
 # s = 5
 # itermax = 2000
-# params = {'Massart' : {'ld': 1.58e-3, 'step': 0.631}, 'Mathur': {'ld': 2.5, 'step': 6e-4}}
-# artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax, methods = ['Mathur'])
+# params = {'L_1O' : {'ld': 1.58e-3, 'step': 0.631}, 'SLS': {'ld': 2.5, 'step': 6e-4}}
+# artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax, methods = ['SLS'])
 s = 10
-# artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax, methods = ['Massart', 'Mathur'])
+# artificial_big_matrix_test_comparison(n_test, n1, n2, s, params, itermax, methods = ['L_1O', 'SLS'])
 # artificial_big_matrix_test_comparison(10, 50, 20, 10)
 
 
 
-############### otpimal parameters mathur ################
-# delta_optimal_mathur( n1 = 20, n2 = 50 , s = 10, ld = 2.5, step = 6e-4, delta = np.geomspace(0.01, 100.0, 5), itermax = 2000, n_test = 4, artificial = False, save = False) 
+############### otpimal parameters SLS ################
+# delta_optimal_SLS( n1 = 20, n2 = 50 , s = 10, ld = 2.5, step = 6e-4, delta = np.geomspace(0.01, 100.0, 5), itermax = 2000, n_test = 4, artificial = False, save = False) 
 
 ################ time precision test ################ 
 

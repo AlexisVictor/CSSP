@@ -95,9 +95,9 @@ def store_matrix(X, file_path):
     np.savetxt(file_path, X)
     return True
 
-def plot_dict(results_dict_massart, n1, n2, method = '', save=False, filename='results_r.png', s=10):
-    keys = list(results_dict_massart.keys())
-    values = list(results_dict_massart.values())
+def plot_dict(results_dict_L_1O, n1, n2, method = '', save=False, filename='results_r.png', s=10):
+    keys = list(results_dict_L_1O.keys())
+    values = list(results_dict_L_1O.values())
     # print('this is keys : ', keys)
     # Extract the x and y values from the keys
     x_values = [key[0] for key in keys]
@@ -151,7 +151,7 @@ def plot_dict(results_dict_massart, n1, n2, method = '', save=False, filename='r
 #     return None
 
 
-# print(dict_fac['prof']['mathur'])
+# print(dict_fac['prof']['SLS'])
 # save_dict(dict_fac, 3, 'test.txt')
 
 def store_dict_in_file(dict_, depth, filename):

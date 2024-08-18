@@ -36,19 +36,19 @@ def LHS_function_objectif(X ,W ):
 def RHS_function_objectif(n2 ,W ):
     return entrywise_l1_norm(W@W.T -np.identity(n2))
 
-def mathur_f_to_min(X, t, delta, lamda, n2):
+def SLS_f_to_min(X, t, delta, lamda, n2):
     T = np.diag(t)
     P_tilde = X@T@np.linalg.pinv(T@X.T@X@T + delta*(np.identity(n2) - np.square(T)))@T@X.T
     return -np.trace(X.T@P_tilde@X) + lamda*np.sum(t)
 
-def mathur_f_to_min_fast(X, t, delta, lamda, n2):
+def SLS_f_to_min_fast(X, t, delta, lamda, n2):
     T = np.diag(t)
     XT = np.dot(X, T)
     TXT = np.dot(T, X.T)
     P_tilde = np.dot(np.dot(XT,np.linalg.pinv(np.dot(TXT,XT) + delta*(np.identity(n2) - np.square(T)))),TXT)
     return -np.trace(np.dot(np.dot(X.T,P_tilde),X)) + lamda*np.sum(t)
 
-def mathur_f_LHS(X, t, delta, lamda, n2):
+def SLS_f_LHS(X, t, delta, lamda, n2):
     T = np.diag(t)
     # print(T@X.T@X@T + delta*(np.identity(n2) - T@T))
     # print('shape of TxTT+delta(I-TT)) ' , np.shape(T@X.T@X@T + delta*(np.identity(n2) - T@T)))
@@ -75,17 +75,6 @@ def grad_g_slow( X, W,  n1, n2, s):
             # gd[i,j]= -np.trace(X.T@(dA@Aplus+A@DAplus)@X)
             gd[i,j]= -np.trace(X.T@un@X)
     return gd
-
-# def grad_g( X, W, n1, n2, s): #4h de taff
-#     # i = 1
-#     # j = 2 
-#     gd = np.zeros((n2,s))
-#     A = X@W  # dim n1 x s 
-#     Aplus = np.linalg.pinv(A) 
-#     E1 = Aplus@X@X.T
-#     E2 = E1@A@Aplus
-#     E3 = (np.identity(n1)-A@Aplus)@X@X.T@Aplus.T
-#     return - (E1@X).T + (E2@X).T -(E3.T@X).T 
 
 def function_objectif_C(X ,C ):
     return np.linalg.norm(X - C @ np.linalg.pinv(C)@X, ord='fro')
@@ -213,27 +202,13 @@ def grad_g_fast(X, W, XXT, n1):
     E1 = np.dot(Aplus,XXT)
     return - 2*np.dot(np.dot(X.T,XXT),Aplus.T) + 2*np.dot(np.dot(np.dot(X.T, AAplus),XXT), Aplus.T)
 
-def massart( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8, 
-            smart_start = False, stupid_method = False, save = False, sign_tol = False, tolg = 1e-5,
-            filename ='', plot = False ):
-    stoch = False  #stoch for stochastic gradient descent
+def L_1O( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8, stupid_method = False, save = False, sign_tol = False, tolg = 1e-5,
+            filename =''):
     error = CSSP_approximation_svd(X, n1, n2, s)[1]
-    # if smart_start:
-    #     W_i = CSSP_approximation_svd(X, n1, n2, s)[0]
-    # else: 
-    #     permutation_matrix = generate_permutation_matrix(n2)
-    #     W_i = permutation_matrix@np.eye(n2,s)
     n = 0
-    # if plot5:
-    #     W_i = X[:s, :n2].copy().T
-    # else:
     W_i = np.random.rand(n2,s)
     W_arr = [W_i]
     XXT = np.dot(X, X.T)
-    # if (np.linalg.norm(grad_g_fast(X, W_i, XXT, n1)-grad_g(X, W_i, n1, n2, s), ord='nuc') > 1e-3):
-    #     print('error in grad_g')
-    #     print(np.linalg.norm(grad_g_fast(X, W_i, XXT, n1)-grad_g(X, W_i, n1, n2, s), ord='nuc'))
-    #     # return (np.random.choice(range(n2), s, replace=False), function_objectif_C( X, X[:,np.random.choice(range(n2), s, replace=False)]), maxiter)
     gl = grad_g_fast(X, W_i, XXT, n1)
     gr = grad_d_l1(W_i, n2)
     if display:
@@ -244,7 +219,7 @@ def massart( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8,
         grad_l = []
         grad = []
         f_min_without_penalty = []
-        # fstar = [second_part_of_massart(X, W_i, n2, s)]
+        # fstar = [second_part_of_L_1O(X, W_i, n2, s)]
     f_min = [function_objectif_W_RHS(X, W_i, ld, n2)]
     f_best = float('inf')
     n_best = 0
@@ -269,11 +244,8 @@ def massart( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8,
             f_min.append(function_objectif_W_RHS(X, W_i, ld, n2))
             f_min_without_penalty.append(function_objectif_W(X, W_i)/error)
             W_arr.append(W_i)
-            # fstar.append(second_part_of_massart(X, W_i, n2, s))
+            # fstar.append(second_part_of_L_1O(X, W_i, n2, s))
         n+=1   
-        ### NOUVEAU CRITERE D ARRET -> celui que je dois garder 
-        # garde en mémoire le meilleur point trouvé jusqu'à présent et si il ne change pas sur les 10 dernières itérations, on arrête
-        # on break la boucle. Pour updater le meilleur point, l'amélioration doit être supérieure à la tolérance tol
         fk = function_objectif_W_RHS(X, W_i, ld, n2)
         if fk + tol < f_best:
             f_best = fk
@@ -284,9 +256,7 @@ def massart( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8,
             # print(f'critere d arret after {n} iterations')
             break
     W = W_i
-    # print('fin')
     if display:
-        #save iter, ld_penalty, f_min_without_penalty, grad_r, grad_l in a file .txt
         with open('results/'+filename+'t.txt', 'w') as f:
             for i in range(len(iter)):
                 f.write(f'{iter[i]}\t{ld_penality[i]}\t{f_min_without_penalty[i]}\t{grad_r[i]}\t{grad_l[i]}\n')
@@ -308,11 +278,10 @@ def massart( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8,
         plt.grid()
         plt.yscale('log')
         if save:   
-            plt.savefig('results/plot_massart_.svg')
+            plt.savefig('results/plot_L_1O_.svg')
             # plt.show()
         else:
             plt.show()
-    # print(f'critere d arret after {n} iterations')
     # ---------------------- seconde partie --------------------------------
     try:
         (Pp, Sigmap, Vp) = np.linalg.svd(W)
@@ -323,16 +292,12 @@ def massart( X, n1, n2, s, ld, step, maxiter, display = False, tol = 1e-8,
         return (random_combination, function_objectif_C( X, C), n)
     # ft.store_matrix(Pp, 'Ps_error.txt')
     PsIs = Pp@np.eye(n2,s)
-    # ft.store_matrix(PsIs, 'PsIs_error.txt')
-    ft.store_matrix(np.sort(np.sum(np.abs(PsIs)**2,axis=-1)**(1./2))[-s:], 'arr_.txt')
-    ft.store_matrix(np.sort(np.sum(np.abs(PsIs)**2,axis=-1)**(1./2)), 'arr.txt')
-    # print(svds(W, k=s, return_singular_vectors=False))
     non_null_columns = np.argsort(np.sum(np.abs(PsIs)**2,axis=-1)**(1./2))[-s:] #find_lines_with_largest_abs(PsIs, s)
     C_emp = X[:,non_null_columns]
     return (non_null_columns, function_objectif_C( X, C_emp), n)
 
 
-def massart_part1_speed( X, n1, n2, s, ld, step, maxiter, mod, display = False, tol = 1e-5, smart_start = False, stupid_method = False, save = False):
+def L_1O_part1_speed( X, n1, n2, s, ld, step, maxiter, mod, display = False, tol = 1e-5, smart_start = False, stupid_method = False, save = False):
     stoch = False  #stoch for stochastic gradient descent
     if smart_start:
         W_i = CSSP_approximation_svd(X, n1, n2, s)[0]
@@ -370,10 +335,7 @@ def massart_part1_speed( X, n1, n2, s, ld, step, maxiter, mod, display = False, 
         except np.linalg.LinAlgError:
             return (np.random.choice(range(n2), s, replace=False), function_objectif_C( X, X[:,np.random.choice(range(n2), s, replace=False)]), maxiter)
         W_i -= step*(gl + ld*gr)
-        n+=1   
-        ### NOUVEAU CRITERE D ARRET -> celui que je dois garder 
-        # garde en mémoire le meilleur point trouvé jusqu'à présent et si il ne change pas sur les 10 dernières itérations, on arrête
-        # on break la boucle. Pour updater le meilleur point, l'amélioration doit être supérieure à la tolérance tol
+        n+=1
         fk = function_objectif_W_RHS(X, W_i, ld, n2)
         if fk + tol < f_best:
             f_best = fk
@@ -401,12 +363,8 @@ def massart_part1_speed( X, n1, n2, s, ld, step, maxiter, mod, display = False, 
     return (Timer_array, n_array, Error_array)
     
 
-def grad_mathur(X : np.ndarray, t : np.array, delta :float, ld : float): # to check if correct
+def grad_SLS(X : np.ndarray, t : np.array, delta :float, ld : float): # to check if correct
     K = X.T @ X
-    # print('this is K')
-    # print(K)
-
-    # print(np.shape(K))
     Z = K - delta * np.identity(np.shape(K)[0])
     T = np.diag(t)
     Lt = T @ Z @ T + delta * np.identity(np.shape(K)[0])
@@ -414,7 +372,7 @@ def grad_mathur(X : np.ndarray, t : np.array, delta :float, ld : float): # to ch
     return 2*np.diag(Lt_inv @ T @ np.square(K) @ (T @ Lt_inv @ T @ Z - np.identity(np.shape(K)[0]))) + ld*np.ones(np.shape(K)[0])
 
 
-def mathur(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, tol = 1e-5, stochastic = True):
+def SLS(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, tol = 1e-5, stochastic = True, info = False):
     """
     Parameters:
         X (numpy.ndarray): The matrix to approximate.
@@ -444,23 +402,14 @@ def mathur(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, 
     z_m = np.zeros((M,n2))
     for i in range(M):
         z_m[i] = np.random.choice([-1, 1], size=n2) 
-    # f_best_N = list(np.ones(11)*float('inf'))
     f_best = float('inf')
-    # time_old = time.time()
     ti = tw(w)
-    # print('this is ti', ti)
     n_best = 0
     while (n<maxiter):
-        # if (n%10==0):
-            # print(n)
-        # print(n)
-        # print('this is iter : ', n) 
         z_m = np.zeros((M,n2))
         for i in range(M):
             z_m[i] = np.random.choice([-1, 1], size=n2) 
         phi = np.zeros(n2)
-        # print('shape of K', np.shape(K))
-        # print('shape of z_m', np.shape(z_m))
         if stochastic:
             for z in z_m:
                 a = np.dot(K,z)
@@ -471,7 +420,7 @@ def mathur(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, 
                     b = np.linalg.solve(L, ti*a)
                 except np.linalg.LinAlgError:
                     rand_indx = np.random.choice(range(n2), s, replace=False)
-                    print('error in grad mathur')
+                    print('error in grad SLS')
                     return (rand_indx, function_objectif_C( X, X[:,rand_indx]), 0, ti)
                 # b = np.linalg.inv(L)@(ti* a)
                 phi += b*np.dot(Z,(ti*b)) - a*b 
@@ -479,10 +428,10 @@ def mathur(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, 
         else:
             try:
                 # print('this is ti', ti)
-                grad_f_t = grad_mathur(X, ti, delta, ld)
+                grad_f_t = grad_SLS(X, ti, delta, ld)
             except np.linalg.LinAlgError:
                 rand_indx = np.random.choice(range(n2), s, replace=False)
-                print('error in grad mathur')
+                print('error in grad SLS')
                 return (rand_indx, function_objectif_C( X, X[:,rand_indx]), 0, ti)
         grad_f_t_w = grad_f_t*(2*w*np.exp(-w*w))
         i = np.random.randint(0, n2)
@@ -494,24 +443,15 @@ def mathur(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, 
         if (display):
             indices = np.argpartition(ti, -s)[-s:]
             values.append(function_objectif_C( X, X[:,indices]))
-            f_to_min.append(mathur_f_to_min(X, ti, delta, ld, n2))
-            # f_LHS.append(mathur_f_LHS(X, ti, delta, ld, n2))
+            f_to_min.append(SLS_f_to_min(X, ti, delta, ld, n2))
+            # f_LHS.append(SLS_f_LHS(X, ti, delta, ld, n2))
             # grad.append(np.linalg.norm(2*phi/M + ld*np.ones(n2)))
-        # print(mathur_f_to_min(X, ti, delta, ld, n2))
-        # print('shape of mathur_f_to_mi', np.shape(mathur_f_to_min(X, ti, delta, ld, n2)))
-        # print(mathur_f_to_min_fast(X, ti, delta, ld, n2))
-        # print('shape of mathur_f_to_min_fast', np.shape(mathur_f_to_min_fast(X, ti, delta, ld, n2)))
-        # if (np.abs(mathur_f_to_min(X, ti, delta, ld, n2) - mathur_f_to_min_fast(X, ti, delta, ld, n2)) > 1e-3):
-        #     print('error in mathur_f_to_min')
-        #     print(np.linalg.norm(mathur_f_to_min(X, ti, delta, ld, n2) - mathur_f_to_min_fast(X, ti, delta, ld, n2), ord = 'nuc'))
-        # print(n)
+
         try:
-            fk = mathur_f_to_min(X, ti, delta, ld, n2)
+            fk = SLS_f_to_min(X, ti, delta, ld, n2)
         except np.linalg.LinAlgError:
-            print('error in mathur_f_to_min')
+            print('error in SLS_f_to_min')
             return (np.random.choice(range(n2), s, replace=False), function_objectif_C( X, X[:,np.random.choice(range(n2), s, replace=False)]), 0, ti)
-        # print('this is fk', fk)
-        # print('this is f_best', f_best)
         if fk + tol < f_best:
             f_best = fk
             t = ti
@@ -530,12 +470,13 @@ def mathur(X, n1, n2, s, ld, step, maxiter, delta = 10, M = 5, display = False, 
         plt.grid()
         plt.show()
     t = ti
-    # print(t)
-    # print('fin')
     indices = np.argpartition(t, -s)[-s:]
-    return (indices,function_objectif_C( X, X[:,indices]), n, ti)
+    if info:
+        return (indices,function_objectif_C( X, X[:,indices]), n, ti)
+    else:
+        return indices
 
-def mathur_speed(X, n1, n2, s, ld, step, maxiter, mod, delta = 10, M = 5, display = False, tol = 1e-5, stochastic = True):
+def SLS_speed(X, n1, n2, s, ld, step, maxiter, mod, delta = 10, M = 5, display = False, tol = 1e-5, stochastic = True):
     """
     Parameters:
         X (numpy.ndarray): The matrix to approximate. 
@@ -589,17 +530,17 @@ def mathur_speed(X, n1, n2, s, ld, step, maxiter, mod, delta = 10, M = 5, displa
                     b = np.linalg.solve(L, ti*a)
                 except np.linalg.LinAlgError:
                     rand_indx = np.random.choice(range(n2), s, replace=False)
-                    print('error in grad mathur')
+                    print('error in grad SLS')
                     return (rand_indx, function_objectif_C( X, X[:,rand_indx]), maxiter, ti)
                 # b = np.linalg.inv(L)@(ti* a)
                 phi += b*(Z@(ti*b)) - a*b 
             grad_f_t = 2*phi/M + ld*np.ones(n2)
         else:
             try:
-                grad_f_t = grad_mathur(X, ti, delta, ld)
+                grad_f_t = grad_SLS(X, ti, delta, ld)
             except np.linalg.LinAlgError:
                 rand_indx = np.random.choice(range(n2), s, replace=False)
-                print('error in grad mathur')
+                print('error in grad SLS')
                 return (rand_indx, function_objectif_C( X, X[:,rand_indx]), maxiter, ti)
         grad_f_t_w = grad_f_t*(2*w*np.exp(-w*w))
         i = np.random.randint(0, n2)
@@ -611,8 +552,8 @@ def mathur_speed(X, n1, n2, s, ld, step, maxiter, mod, delta = 10, M = 5, displa
         if (display):
             indices = np.argpartition(ti, -s)[-s:]
             values.append(function_objectif_C( X, X[:,indices]))
-            f_to_min.append(mathur_f_to_min(X, ti, delta, ld, n2))
-            # f_LHS.append(mathur_f_LHS(X, ti, delta, ld, n2))
+            f_to_min.append(SLS_f_to_min(X, ti, delta, ld, n2))
+            # f_LHS.append(SLS_f_LHS(X, ti, delta, ld, n2))
             # grad.append(np.linalg.norm(2*phi/M + ld*np.ones(n2)))
         # if n==30:
         #     break
@@ -622,12 +563,12 @@ def mathur_speed(X, n1, n2, s, ld, step, maxiter, mod, delta = 10, M = 5, displa
             n_array[n//mod] = n
             # print('this is n', n)
         try:
-            fk = mathur_f_to_min(X, ti, delta, ld, n2)
+            fk = SLS_f_to_min(X, ti, delta, ld, n2)
             # print('this is fk')
         except np.linalg.LinAlgError:
-            print('error in mathur_f_to_min')
+            print('error in SLS_f_to_min')
             return (np.random.choice(range(n2), s, replace=False), function_objectif_C( X, X[:,np.random.choice(range(n2), s, replace=False)]), 0, ti)
-        # fk = mathur_f_to_min(X, ti, delta, ld, n2)
+        # fk = SLS_f_to_min(X, ti, delta, ld, n2)
         if fk + tol < f_best:
             f_best = fk
             t = ti
@@ -833,7 +774,7 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
     """
     # p = np.zeros(int(s*np.log(s)))
     n1, n2 = np.shape(X)
-    V_s = calculate_right_eigenvectors_k_svd(data_arrithmia,s_)
+    V_s = calculate_right_eigenvectors_k_svd(X,s)
     # V_s = Q
     # Hard = True
     p = np.zeros(n2)
@@ -854,7 +795,10 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
             p[i] = (np.linalg.norm(Vs[i, :])**2) / s
 
 
-    c = c*int(s*np.log(s))
+    # c = c*int(s*np.log(s))
+    # c = 2*s
+    if c == 1:
+        c = 10*s
     # print('p \n', p)
     ##### end of the initial set up 
     ##### Randomized stage
@@ -885,7 +829,9 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
     # print('D1 \n', D1)
     # print('Vt \n', Vs.T)
     # print('Vs.T@S1@D1 \n', Vs.T@S1@D1)
-    c = s*np.log(s)
+    # c = s*np.log(s)
+    # c = 10*s
+    print(np.shape(Vs.T@S1@D1))
     (m, n) = np.shape(Vs.T@S1@D1)
     if ((m >= n) or (np.linalg.matrix_rank(Vs.T@S1@D1) != m)):
         print(m, n)
@@ -901,75 +847,17 @@ def Boutsidis_Mahoney_Drineas( X, s, c=1, advanced_leveraging_score = True): # e
         print('np.shape of Vs.T@S1@D1 \n', np.shape(Vs.T@S1@D1))
         print('Vs.T@S1@D1 \n', Vs.T@S1@D1)
         print('svd of Vs.T@S1@D1 \n', np.linalg.svd(Vs.T@S1@D1))
-    ###JUSQUE ICI C EST BON
+    # Second Phase
     Gamma, L, U1, U2, PI = local_mu_maximum_volume(Vs.T@S1@D1)
-    VS1D1S2 = np.linalg.inv(Gamma)@L@U1#@PI[:,:s].T
     VS1D1S2_ = np.linalg.inv(Gamma)@L@U1@PI[:,:s].T
-    # print('VS1D1S2_ \n', VS1D1S2_)
-    #k = list of indices whre the col of VS1D1S2_ is non null 
     k = np.where(np.sum(np.abs(VS1D1S2_), axis=0) != 0)[0]
-    # print('k \n', k)
-    # print('c_tilde \n', c_tilde)
-    #S2 = matrix that selections the columns of indices k of VS1D1S2_ when doing the product VS1D1S2_@S2
     S2 = np.zeros((c_tilde, len(k)))
     for i,j in zip(k,range(len(k))):
         S2[i, j] = 1
     # print('S2 \n', S2)
     C = X@S1@S2
-    # print('X \n', X)
-    # print('C \n', C)
-    # print('shape of A', np.shape(A))
-    #-----------ALGO1----------------
-    #PHASE1
-    return C
-
-# X = np.random.rand(5,7)
-# # print(X)
-# C = Boutsidis_Mahoney_Drineas(X, 4, 5)
-# score = Approximation_factor_C(X, 4, C)
-# print('score is ', score)
-
-def Leverage_scores(A, s, c = 2):
-    """
-    Function to select columns based on leverage scores.
-    
-    Parameters:
-    A (numpy.ndarray): m x n matrix.
-    c (int): Rank parameter.
-    s (int): Number of columns to select.
-    
-    Returns:
-    numpy.ndarray: m x c' matrix with c' columns from A.
-    """
-    m, n = A.shape
-    # c = s #To del 
-    u, S, v = svds(A, c)
-    v = v.T
-    # Compute the normalized leverage scores
-    # print('shape of V \n', np.shape(v))
-    pi = np.zeros(n)
-    for j in range(n):
-        pi[j] = (np.linalg.norm(v[j])**2) / c
-    
-    # Randomized column selection
-    indexA = []
-    for j in range(n):
-        prob_j = min(1, s * pi[j])
-        if prob_j == 1 or prob_j > np.random.rand():
-            indexA.append(j)
-        # if np.size(indexA) < s:
-        #     print('ouf ', c)
-    # Select columns of A
-    # while (len(indexA) <s):
-    # print('here')
-    # CL = Leverage_scores(X, 5, 3, X)
-    # print(len(indexA))
-    C = A[:, indexA[:s]]
-    return (C, function_objectif_C(A, C))
-
-
-# def 
-
+    s = np.where(S1@S2 == 1)[0]
+    return (C, function_objectif_C(X, C))
 
 def Uniform_sampling(A, s):
     """
@@ -986,37 +874,3 @@ def Uniform_sampling(A, s):
     indexA = np.random.choice(n, s, replace=False)
     # print('indexA \n', indexA)
     return (A[:, indexA], function_objectif_C(A, A[:, indexA]))
-
-# code from 2018 AyoubBelhadji
-# https://github.com/AyoubBelhadji/CSSPy.git
-def Boutsidis_RQRR(X, k, s):
-    """
-    Boutsidis and Mahoney algorithm for column subset selection using RQRR instead of LU refactorization.
-    X (numpy.ndarray): The matrix to approximate.
-    k (int): The rank parameter.
-    s (int): The number of columns to select.
-    """
-    _,_,V = np.linalg.svd(X)
-    V_s = calculate_right_eigenvectors_k_svd(X,s)
-    (n1, n2) = np.shape(X)
-    k = 10*s
-    # Q = V_s
-    N = n2 #dimension of subsampling (the number of columns) of A
-    d = n2
-    lvs_array = 1/(s)*np.diag(np.dot(V_s.T, V_s))
-    sampled_indices = np.random.choice(N, k, replace=True, p=list(lvs_array))
-    column_selected = V_s[:,sampled_indices]
-    D_Q = np.diag(np.dot(column_selected.T,column_selected))
-    phase_one_sampling_list = sampled_indices
-    temp_Q = np.dot(column_selected,np.linalg.inv(np.diag(np.sqrt(D_Q))))
-    _, _, permutation_QR = scipy.linalg.qr(temp_Q, pivoting=True)      
-    phase_two_sampling_list = list(permutation_QR)[0:s]
-    sampling_list = []
-    count = 0
-    for t in phase_one_sampling_list:
-            if count in phase_two_sampling_list:
-                sampling_list.append(t)
-            count += 1
-    return (sampling_list, function_objectif_C(X, X[:,sampling_list]))
-
-# print(Boutsidis_RQRR(np.random.rand(20, 50), 5, 10))
